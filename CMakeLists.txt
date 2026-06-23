@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.30)
 
 project(cad LANGUAGES CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS on)
+set(CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED on)
+
+
 add_subdirectory(test)
 
 file(CREATE_LINK
@@ -11,3 +16,4 @@ file(CREATE_LINK
 )
 
 enable_testing()
+
