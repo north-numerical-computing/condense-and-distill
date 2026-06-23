@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-project(tests)
+project(cad)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -13,6 +13,7 @@ FetchContent_MakeAvailable(Catch2)
 
 add_executable(tests
   run.cpp
+  generate.cpp
 )
 
 target_link_libraries(tests PRIVATE Catch2WithMain)
@@ -22,5 +23,9 @@ include(Catch)
 
 catch_discover_tests(tests)
 
+add_executable(bench 
+  bench.cpp 
+  generate.cpp
+)
 
-
+target_include_directories(bench PRIVATE ${CMAKE_SOURCE_DIR})
