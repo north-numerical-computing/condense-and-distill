@@ -2,6 +2,7 @@
 
 /* based on paper "Library for Double-Double and Quad-Double Arithmetic" by David H. Bailey */
 
+#include <span>
 #include <vector>
 
 struct qdouble {
@@ -86,7 +87,7 @@ qdouble qdoubleAdd(qdouble a, double b) {
   return renormalise(a0, a1, a2, a3, e);
 }
 
-double qdoubleSum(const std::vector<double>& sum) {
+double qdoubleSum(std::span<double> sum) {
   qdouble current{0, 0, 0, 0};
 
   for (double i : sum) {
