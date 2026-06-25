@@ -22,7 +22,7 @@ uint16_t generateKey(double x) {
   return (y.b >> 51) | (y.b & 1);
 }
 
-void insert(std::unordered_map<uint16_t, double>& bucket, double value, uint16_t key) {
+void insert(std::vector<double>& bucket, double value, uint16_t key) {
   if (bucket[key] == 0) {
     bucket[key] = value;
     return;
@@ -31,13 +31,13 @@ void insert(std::unordered_map<uint16_t, double>& bucket, double value, uint16_t
   double newValue = bucket[key] + value;
   uint16_t newKey = generateKey(newValue);
 
-  bucket.erase(key);
+  bucket[key] = 0;
 
   insert(bucket, newValue, newKey);
 }
 
-double cadSum(const std::span<double>& sum) {
-  std::unordered_map<uint16_t, double> bucket;
+double cadSum(std::span<double> sum) {
+  std::vector<double> bucket(8191, 0);
   double total;
 
   for (double i : sum) {
@@ -46,11 +46,5 @@ double cadSum(const std::span<double>& sum) {
     insert(bucket, i, accumulator);
   }
 
-  qdouble current{0, 0, 0, 0};
-
-  for (auto i : bucket) {
-    current = qdoubleAdd(current, i.second);
-  }
-
-  return current.a + current.b + current.c + current.d;
+  return qdoubleSum(bucket);
 }
