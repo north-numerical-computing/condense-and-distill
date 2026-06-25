@@ -76,6 +76,8 @@ qdouble renormalise(double a0, double a1, double a2, double a3, double a4) {
 }
 
 qdouble qdoubleAdd(qdouble a, double b) {
+  if (b == 0) return a;
+
   double a0, a1, a2, a3;
   double e;
 

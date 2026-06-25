@@ -36,6 +36,16 @@ void insert(std::vector<double>& bucket, double value, uint16_t key) {
   insert(bucket, newValue, newKey);
 }
 
+void count(const std::vector<double>& data) {
+  int c = 0;
+
+  for (double i : data) {
+    if (i != 0) c++;
+  }
+
+  std::cout << c << "\n";
+}
+
 double cadSum(std::span<double> sum) {
   std::vector<double> bucket(8191, 0);
   double total;
@@ -45,6 +55,8 @@ double cadSum(std::span<double> sum) {
 
     insert(bucket, i, accumulator);
   }
+
+  // count(bucket);
 
   return qdoubleSum(bucket);
 }
