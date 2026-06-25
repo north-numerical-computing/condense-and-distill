@@ -7,7 +7,7 @@
 #include <span>
 #include <memory>
 
-#include <map>
+#include <unordered_map>
 
 #include "qdouble.h"
 
@@ -22,7 +22,7 @@ uint16_t generateKey(double x) {
   return (y.b >> 51) | (y.b & 1);
 }
 
-void insert(std::map<uint16_t, double>& bucket, double value, uint16_t key) {
+void insert(std::unordered_map<uint16_t, double>& bucket, double value, uint16_t key) {
   if (bucket[key] == 0) {
     bucket[key] = value;
     return;
@@ -37,7 +37,7 @@ void insert(std::map<uint16_t, double>& bucket, double value, uint16_t key) {
 }
 
 double cadSum(const std::span<double>& sum) {
-  std::map<uint16_t, double> bucket;
+  std::unordered_map<uint16_t, double> bucket;
   double total;
 
   for (double i : sum) {
