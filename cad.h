@@ -1,8 +1,13 @@
 #pragma once 
 
-#include <cstdint>
-#include <vector>
 #include <iostream>
+#include <cstdint>
+#include <cstring>
+#include <vector>
+#include <span>
+#include <memory>
+
+#include <map>
 
 #include "qdouble.h"
 
@@ -11,34 +16,41 @@ union _ddata {
   uint64_t b;
 };
 
-uint16_t generateAccumulator(double x) {
+uint16_t generateKey(double x) {
   _ddata y;
   y.a = x;
   return (y.b >> 51) | (y.b & 1);
 }
 
-void insert(std::vector<double>& bucket, double value, uint16_t key) {
+void insert(std::map<uint16_t, double>& bucket, double value, uint16_t key) {
   if (bucket[key] == 0) {
     bucket[key] = value;
     return;
   }
 
   double newValue = bucket[key] + value;
-  bucket[key] = 0;
-  uint16_t newKey = generateAccumulator(newValue);
+  uint16_t newKey = generateKey(newValue);
+
+  bucket.erase(key);
+
   insert(bucket, newValue, newKey);
 }
 
-double cadSum(const std::vector<double>& sum) {
-  std::vector<double> bucket(8191, 0);
+double cadSum(const std::span<double>& sum) {
+  std::map<uint16_t, double> bucket;
   double total;
 
   for (double i : sum) {
-    uint16_t accumulator = generateAccumulator(i);
+    uint16_t accumulator = generateKey(i);
 
     insert(bucket, i, accumulator);
   }
 
+  qdouble current{0, 0, 0, 0};
 
-  return qdoubleSum(bucket);
+  for (auto i : bucket) {
+    current = qdoubleAdd(current, i.second);
+  }
+
+  return current.a + current.b + current.c + current.d;
 }
