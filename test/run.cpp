@@ -1,6 +1,7 @@
 #include <vector>
-#include <catch2/catch_test_macros.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_session.hpp>
 
 #include "cad.h"
@@ -11,9 +12,11 @@ int main(int argc, char** argv)
 { int result = Catch::Session().run(argc, argv); }
 
 TEST_CASE("random") {
+  using namespace Catch::Matchers;
+
   auto data = randomDataFixed(1024);
 
-  std::vector<double> x = {1, 2, 3, 4, 5, 6, 7};
-
-  std::cout << cadSum(x) << ", " << qdoubleSum(x) << "\n";
+  double sum1 = cadSum(data);
+  double sum2 = qdoubleSum(data);
+  REQUIRE_THAT(sum1, WithinRel(sum2, 0.0001));
 }
