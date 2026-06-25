@@ -1,13 +1,15 @@
+#include <iostream>
 #include <algorithm>
 #include <chrono>
 #include <functional>
 #include <numeric>
 #include <vector>
+#include <fstream>
 
 #include "cad.h"
 #include "qdouble.h"
 
-typedef std::function<double(const std::vector<double>&)> summation_t;
+typedef std::function<double(const std::span<double>&)> summation_t;
 typedef std::function<std::vector<double>(unsigned int)> data_generator_t;
 
 const int iterations = 100;
@@ -69,30 +71,33 @@ struct test_t {
 };
 
 int main(int argc, char** argv) {
+  std::ofstream outFile("data.csv");
+
   const std::vector<test_t> tests = {
-    {"Condense and distill", Bench{cadSum, randomDataFixed}},
-    {"Quad double",          Bench{qdoubleSum, randomDataFixed}}
+    {"Condense and distill", Bench{cadSum, randomDataFixed}}
+    // {"Quad double",          Bench{qdoubleSum, randomDataFixed}}
   };
 
   for (auto& test : tests) {
-    std::cout << test.name << ",,,";
+    outFile << test.name << ",,,";
   }
-  std::cout << "\n";
+  outFile << "\n";
 
   for (auto& test : tests) {
-    std::cout << "mean,min,max,";
+    outFile << "mean,min,max,";
   }
-  std::cout << "\n";
+  outFile << "\n";
 
   int lower = 1000;
   int upper = 100000;
   int step =  1000;
 
   for (auto i = lower; i < upper; i += step) {
+    std::cout << (100 * (i - lower)) / (upper - lower) << "% \n";
     for (auto& test : tests) {
       statistics_t stats = test.benchmark(i);
-      std::cout << stats.mean << "," << stats.min << "," << stats.max << ",";
+      outFile << stats.mean << "," << stats.min << "," << stats.max << ",";
     }
-    std::cout << "\n";
+    outFile << "\n";
   }
 }

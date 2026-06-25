@@ -13,5 +13,7 @@ int main(int argc, char** argv)
 TEST_CASE("random") {
   auto data = randomDataFixed(1024);
 
-  double sum = cadSum(data);
+  std::vector<double> x = {1, 2, 3, 4, 5, 6, 7};
+
+  std::cout << cadSum(x) << ", " << qdoubleSum(x) << "\n";
 }
