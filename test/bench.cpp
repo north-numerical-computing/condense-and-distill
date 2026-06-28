@@ -12,16 +12,12 @@
 typedef std::function<double(const std::span<double>&)> summation_t;
 typedef std::function<std::vector<double>(unsigned int)> data_generator_t;
 
-const int iterations = 1;
+const int iterations = 100;
 
 struct statistics_t {
   double mean;
   long min,
        max;
-  int bucketFirst,
-      bucketLast,
-      bucketMiddle,
-      bucketCount;
 };
 
 struct Bench {
@@ -60,11 +56,6 @@ struct Bench {
     out.min = *std::min_element(outcomes.begin(), outcomes.end());
     out.max = *std::max_element(outcomes.begin(), outcomes.end());
 
-    out.bucketFirst =  bucketFirst;
-    out.bucketLast =   bucketLast;
-    out.bucketMiddle = bucketMiddle;
-    out.bucketCount  = bucketCount;
-
     return out;
   }
 
@@ -89,12 +80,12 @@ int main(int argc, char** argv) {
   };
 
   for (auto& test : tests) {
-    outFile << test.name << ",,,,";
+    outFile << test.name << ",,,";
   }
   outFile << "\n";
 
   for (auto& test : tests) {
-    outFile << "first,last,middle,count";
+    outFile << "mean,min,max,";
   }
   outFile << "\n";
 
@@ -106,7 +97,7 @@ int main(int argc, char** argv) {
     std::cout << (100 * (i - lower)) / (upper - lower) << "% \n";
     for (auto& test : tests) {
       statistics_t stats = test.benchmark(i);
-      outFile << stats.bucketFirst << "," << stats.bucketLast << "," << stats.bucketMiddle << "," << stats.bucketCount << ",";
+      outFile << stats.mean << "," << stats.min << "," << stats.max << ",";
     }
     outFile << "\n";
   }
