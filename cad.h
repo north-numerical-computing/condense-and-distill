@@ -36,11 +36,35 @@ void insert(std::vector<double>& bucket, double value, uint16_t key) {
   insert(bucket, newValue, newKey);
 }
 
+int bucketFirst;
+int bucketLast;
+int bucketMiddle;
+int bucketCount;
+
 void count(const std::vector<double>& data) {
+  bucketFirst = -1;
+  bucketLast = 0;
+  bucketMiddle = 0;
+  bucketCount = 0;
+
+  for (auto i = 0 ; i < data.size() ; i++) {
+      if (data[i] != 0) {
+        bucketCount++;
+        if (bucketFirst == -1) bucketFirst = i;
+        bucketLast = i;
+      }
+  }
+
   int c = 0;
 
-  for (double i : data) {
-    if (i != 0) c++;
+  for (auto i = 0 ; i < data.size() ; i++) {
+      if (data[i] != 0) {
+        if (c == (bucketCount >> 1)) {
+          bucketMiddle = i;
+          return;
+        }
+        c++;
+      }
   }
 }
 
@@ -53,6 +77,8 @@ double cadSum(std::span<double> sum) {
 
     insert(bucket, i, accumulator);
   }
+
+  count(bucket);
 
   return qdoubleSum(bucket);
 }
