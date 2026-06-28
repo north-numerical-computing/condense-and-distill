@@ -42,8 +42,6 @@ void count(const std::vector<double>& data) {
   for (double i : data) {
     if (i != 0) c++;
   }
-
-  std::cout << c << "\n";
 }
 
 double cadSum(std::span<double> sum) {
@@ -55,8 +53,6 @@ double cadSum(std::span<double> sum) {
 
     insert(bucket, i, accumulator);
   }
-
-  // count(bucket);
 
   return qdoubleSum(bucket);
 }
