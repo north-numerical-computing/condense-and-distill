@@ -1,15 +1,14 @@
 #pragma once 
 
-#include <iostream>
 #include <cstdint>
-#include <cstring>
 #include <vector>
 #include <span>
-#include <memory>
 
-#include <unordered_map>
+#include <map>
 
-#include "qdouble.h"
+#include "qdouble1.h"
+
+namespace cad2 {
 
 union _ddata {
   double a;
@@ -22,7 +21,7 @@ uint16_t generateKey(double x) {
   return (y.b >> 51) | (y.b & 1);
 }
 
-void insert(std::vector<double>& bucket, double value, uint16_t key) {
+void insert(std::map<uint16_t, double>& bucket, double value, uint16_t key) {
   if (bucket[key] == 0) {
     bucket[key] = value;
     return;
@@ -31,13 +30,13 @@ void insert(std::vector<double>& bucket, double value, uint16_t key) {
   double newValue = bucket[key] + value;
   uint16_t newKey = generateKey(newValue);
 
-  bucket[key] = 0;
+  bucket.erase(key);
 
   insert(bucket, newValue, newKey);
 }
 
 double cadSum(std::span<double> sum) {
-  std::vector<double> bucket(8191, 0);
+  std::map<uint16_t, double> bucket;
   double total;
 
   for (double i : sum) {
@@ -46,5 +45,13 @@ double cadSum(std::span<double> sum) {
     insert(bucket, i, accumulator);
   }
 
-  return qdoubleSum(bucket);
+  qdouble1::qdouble out = {0, 0, 0, 0};
+
+  for (auto& value : bucket) {
+    qdouble1::qdoubleAdd(out, value.second);
+  }
+
+  return out.a + out.b + out.c + out.d;
+}
+
 }

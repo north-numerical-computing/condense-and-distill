@@ -4,7 +4,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_session.hpp>
 
-#include "cad.h"
+#include "cad5.h"
+#include "qdouble0.h"
 
 std::vector<double> randomDataFixed(unsigned int n);
 
@@ -16,7 +17,7 @@ TEST_CASE("random") {
 
   auto data = randomDataFixed(1024);
 
-  double sum1 = cadSum(data);
-  double sum2 = qdoubleSum(data);
+  double sum1 = cad5::cadSum(data);
+  double sum2 = qdouble1::qdoubleSum(data);
   REQUIRE_THAT(sum1, WithinRel(sum2, 0.0001));
 }

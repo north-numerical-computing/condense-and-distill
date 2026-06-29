@@ -5,6 +5,8 @@
 #include <span>
 #include <vector>
 
+namespace qdouble1 {
+
 struct qdouble {
   double a,
          b,
@@ -76,10 +78,10 @@ qdouble renormalise(double a0, double a1, double a2, double a3, double a4) {
 }
 
 qdouble qdoubleAdd(qdouble a, double b) {
-  if (b == 0) return a;
-
   double a0, a1, a2, a3;
   double e;
+
+  if (b == 0.0) return a;
 
   twoSum(a.a, b, a0, e);
   twoSum(a.b, e, a1, e);
@@ -97,4 +99,6 @@ double qdoubleSum(std::span<double> sum) {
   }
 
   return current.a + current.b + current.c + current.d;
+}
+
 }

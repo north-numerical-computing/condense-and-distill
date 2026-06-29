@@ -6,8 +6,15 @@
 #include <vector>
 #include <fstream>
 
-#include "cad.h"
-#include "qdouble.h"
+#include "cad0.h"
+#include "cad1.h"
+#include "cad2.h"
+#include "cad3.h"
+#include "cad4.h"
+#include "cad5.h"
+
+#include "qdouble0.h"
+#include "qdouble1.h"
 
 typedef std::function<double(const std::span<double>&)> summation_t;
 typedef std::function<std::vector<double>(unsigned int)> data_generator_t;
@@ -68,6 +75,7 @@ std::vector<double> randomDataFixed(unsigned int n);
 
 struct test_t {
   const char* name;
+  const char* notes;
   Bench benchmark;
 };
 
@@ -75,12 +83,50 @@ int main(int argc, char** argv) {
   std::ofstream outFile("data.csv");
 
   const std::vector<test_t> tests = {
-    {"Condense and distill", Bench{cadSum, randomDataFixed}}
-    // {"Quad double",          Bench{qdoubleSum, randomDataFixed}}
+    {"Quad double V1",
+      "Initial implementation of slow summation algorithm",
+      Bench{qdouble0::qdoubleSum, randomDataFixed}},
+
+    {"Condense and distill V1",
+      "Initial implementation of condense and distill algorithm",
+      Bench{cad0::cadSum, randomDataFixed}},
+
+    {"Quad double V2", 
+      "Optimised version of quad double algorithm that ignores when zero is added, and uses the fast 2sum algorithm instead of the normal one",
+      Bench{qdouble1::qdoubleSum, randomDataFixed}},
+
+    {"Condense and distill V2",
+      "Version that uses the optimised Quad double V2 for the distill stage of the algorithm",
+      Bench{cad1::cadSum, randomDataFixed}},
+
+      /*
+
+    {"Condense and distill V3",
+      "Version using std::map for the bucket",
+      Bench{cad2::cadSum, randomDataFixed}},
+
+    {"Condense and distill V4",
+      "Version using std::unordered_map for the bucket",
+      Bench{cad3::cadSum, randomDataFixed}},
+
+      */
+
+    {"Condense and distill V5",
+      "Only start adding up the values from the lowest non-zero value in the bucket",
+      Bench{cad4::cadSum, randomDataFixed}},
+
+    {"Condense and distill V6",
+      "Create an array that grows to add new keys",
+      Bench{cad5::cadSum, randomDataFixed}}
   };
 
   for (auto& test : tests) {
     outFile << test.name << ",,,";
+  }
+  outFile << "\n";
+
+  for (auto& test : tests) {
+    outFile << test.notes << ",,,";
   }
   outFile << "\n";
 
