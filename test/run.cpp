@@ -7,6 +7,7 @@
 #include "cad.h"
 
 std::vector<double> randomDataFixed(unsigned int n);
+std::vector<double> pythagoreanPairs(unsigned int n);
 
 int main(int argc, char** argv)
 { int result = Catch::Session().run(argc, argv); }
@@ -19,4 +20,15 @@ TEST_CASE("random") {
   double sum1 = cadSum(data);
   double sum2 = qdoubleSum(data);
   REQUIRE_THAT(sum1, WithinRel(sum2, 0.0001));
+}
+
+TEST_CASE("pythagoras") {
+  using namespace Catch::Matchers;
+
+  const unsigned int pairs = 2048;
+  auto data = pythagoreanPairs(pairs);
+
+  double sum = cadSum(data);
+
+  REQUIRE_THAT(sum, WithinRel(pairs, 0.000001));
 }
