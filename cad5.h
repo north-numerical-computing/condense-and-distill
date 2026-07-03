@@ -1,9 +1,10 @@
 #pragma once 
 
-#include <iostream>
 #include <cstdint>
-#include <vector>
+#include <array>
 #include <span>
+#include <thread>
+#include <mutex>
 
 #include "qdouble1.h"
 
@@ -14,84 +15,37 @@ union _ddata {
   uint64_t b;
 };
 
-constexpr uint64_t MASK = 0xFFF0000000000001;
-
-inline bool keyEquals(double a, double b) {
-  _ddata da, db;
-
-  da.a = a;
-  db.a = b;
-
-  return (da.b & MASK) == (db.b & MASK);
+inline uint16_t generateKey(double x) {
+  _ddata y;
+  y.a = x;
+  return (y.b >> 51) | (y.b & 1);
 }
 
-struct bucket_t {
-  bucket_t() = default;
-
-  void insert(double value) {
-    _ddata dValue;
-    dValue.a = value;
-
-    auto pos = std::find_if(data.begin(), data.end(), [](_ddata d) { return d.a == 0.0; });
-    if (pos != data.end()) {
-      *pos = dValue; 
-      return;
-    }
-    data.push_back(dValue);
-  }
-
-  void remove(double value) {
-      auto pos = std::find_if(data.begin(), data.end(), [value](_ddata k) { return keyEquals(k.a, value); });
-      pos->a = 0.0;
-  }
-
-  int contains(double value) {
-    _ddata dValue;
-    dValue.a = value;
-
-
-    for (auto i = 0 ; i < data.size() ; i++) {
-      if (keyEquals(value, data[i].a)) return i;
-    }
-    return -1;
-  }
-  std::vector<_ddata> data;
-};
-
-void insert(bucket_t& bucket, double value) {
-  int index = bucket.contains(value);
-  if (index == -1) {
-    bucket.insert(value);
+void insert(std::array<double, 8191>& bucket, double value, uint16_t key) {
+  if (bucket[key] == 0) {
+    bucket[key] = value;
     return;
   }
 
-  double newValue = bucket.data[index].a + value;
-  
-  if (keyEquals(value, newValue)) {
-    bucket.data[index].a = newValue;
-    return;
-  }
+  double newValue = bucket[key] + value;
+  uint16_t newKey = generateKey(newValue);
 
-  bucket.remove(value);
+  bucket[key] = 0;
 
-  insert(bucket, newValue);
+  insert(bucket, newValue, newKey);
 }
 
 double cadSum(std::span<double> sum) {
-  bucket_t bucket;
+  std::array<double, 8191> bucket = {0.0};
   double total;
 
   for (double i : sum) {
-    insert(bucket, i);
+    uint16_t accumulator = generateKey(i);
+
+    insert(bucket, i, accumulator);
   }
 
-  qdouble1::qdouble out = {0, 0, 0, 0};
-
-  for (auto d : bucket.data) {
-    out = qdouble1::qdoubleAdd(out, d.a);
-  }
-
-  return out.a + out.b + out.c + out.d;
+  return qdouble1::qdoubleSum(bucket);
 }
 
 }
