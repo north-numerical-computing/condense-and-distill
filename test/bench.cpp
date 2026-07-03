@@ -68,37 +68,50 @@ std::vector<double> randomDataFixed(unsigned int n);
 
 struct test_t {
   const char* name;
+  const char* notes;
   Bench benchmark;
 };
 
 int main(int argc, char** argv) {
-  std::ofstream outFile("data.csv");
+  std::ofstream outFile("data.json");
 
   const std::vector<test_t> tests = {
-    {"Condense and distill", Bench{cadSum, randomDataFixed}}
-    // {"Quad double",          Bench{qdoubleSum, randomDataFixed}}
+    {"Condense and distill", "Basic implementation of condense and distill based on original paper.", Bench{cadSum, randomDataFixed}},
+    {"Quad double", "Implementation of quad-double algorithm (slow but accurate)", Bench{qdoubleSum, randomDataFixed}}
   };
 
-  for (auto& test : tests) {
-    outFile << test.name << ",,,";
-  }
-  outFile << "\n";
+  const int lower = 1000;
+  const int upper = 100000;
+  const int step =  1000;
+
+  double count = 0;
+
+  outFile << "[";
+
+  bool testComma = false;
 
   for (auto& test : tests) {
-    outFile << "mean,min,max,";
-  }
-  outFile << "\n";
+    std::cout << 100 * count / tests.size() << "%\n";
+    if (testComma) outFile << ",";
+    outFile << "{\"Name\": \"" << test.name << "\",";
+    outFile << "\"Comment\": \"" << test.notes << "\",";
+    outFile << "\"Data\": [";
 
-  int lower = 1000;
-  int upper = 100000;
-  int step =  1000;
+    bool dataComma = false;
 
-  for (auto i = lower; i < upper; i += step) {
-    std::cout << (100 * (i - lower)) / (upper - lower) << "% \n";
-    for (auto& test : tests) {
+    for (auto i = lower; i <= upper; i += step) {
+      if (dataComma) outFile << ",";
       statistics_t stats = test.benchmark(i);
-      outFile << stats.mean << "," << stats.min << "," << stats.max << ",";
+      outFile << "[" << stats.mean << ", " << stats.min << ", " << stats.max << "]";
+      dataComma = true;
     }
-    outFile << "\n";
+
+    outFile << "]}";
+    testComma = true;
+    count++;
   }
+
+  std::cout << "100%";
+
+  outFile << "]";
 }
