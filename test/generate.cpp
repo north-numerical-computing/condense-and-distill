@@ -47,21 +47,24 @@ These powers of two can be repeated n times
 resulting in a summation that should equal n*2^k
 */
 std::vector<double> powersOfTwo(unsigned int repeat, int k) {
-  std::vector<double> out;
+  std::vector<double> temp;
 
   const int lower = -100;
   const int upper = 100;
   
   for (int i = lower ; i <= upper ; i++) {
     double u = std::pow(2, i);
-    out.push_back(u);
+    temp.push_back(u);
 
     if (i == k) continue;
-    out.push_back(-u);
+    temp.push_back(-u);
   }
 
-  for (int i = 1 ; i < repeat ; i++) {
-    out.insert(out.end(), out.begin(), out.end());
+  std::vector<double> out;
+  out.reserve(temp.size() * repeat);
+
+  for (int i = 0 ; i < repeat ; i++) {
+    out.insert(out.end(), temp.begin(), temp.end());
   }
 
   std::mt19937 gen(0);
