@@ -80,9 +80,10 @@ struct test_t {
 };
 
 int main(int argc, char** argv) {
-  std::ofstream outFile("data.csv");
+  std::ofstream outFile("data.json");
 
   const std::vector<test_t> tests = {
+
     {"Quad double V1",
       "Initial implementation of slow summation algorithm",
       Bench{qdouble0::qdoubleSum, randomDataFixed}},
@@ -92,14 +93,14 @@ int main(int argc, char** argv) {
       Bench{cad0::cadSum, randomDataFixed}},
 
     {"Quad double V2", 
-      "Optimised version of quad double algorithm that ignores when zero is added, and uses the fast 2sum algorithm instead of the normal one",
+      "Optimised version of quad double algorithm that ignores when zero is added",
       Bench{qdouble1::qdoubleSum, randomDataFixed}},
 
     {"Condense and distill V2",
       "Version that uses the optimised Quad double V2 for the distill stage of the algorithm",
       Bench{cad1::cadSum, randomDataFixed}},
 
-      /*
+    /*
 
     {"Condense and distill V3",
       "Version using std::map for the bucket",
@@ -109,42 +110,49 @@ int main(int argc, char** argv) {
       "Version using std::unordered_map for the bucket",
       Bench{cad3::cadSum, randomDataFixed}},
 
-      */
+    */
 
     {"Condense and distill V5",
       "Only start adding up the values from the lowest non-zero value in the bucket",
       Bench{cad4::cadSum, randomDataFixed}},
 
     {"Condense and distill V6",
-      "Create an array that grows to add new keys",
+      "Use std::array instead of std::vector for buckets",
       Bench{cad5::cadSum, randomDataFixed}}
   };
 
-  for (auto& test : tests) {
-    outFile << test.name << ",,,";
-  }
-  outFile << "\n";
+  const int lower = 1000;
+  const int upper = 100000;
+  const int step =  1000;
+
+  double count = 0;
+
+  outFile << "[";
+
+  bool testComma = false;
 
   for (auto& test : tests) {
-    outFile << test.notes << ",,,";
-  }
-  outFile << "\n";
+    std::cout << 100 * count / tests.size() << "%\n";
+    if (testComma) outFile << ",";
+    outFile << "{\"Name\": \"" << test.name << "\",";
+    outFile << "\"Comment\": \"" << test.notes << "\",";
+    outFile << "\"Data\": [";
 
-  for (auto& test : tests) {
-    outFile << "mean,min,max,";
-  }
-  outFile << "\n";
+    bool dataComma = false;
 
-  int lower = 1000;
-  int upper = 100000;
-  int step =  1000;
-
-  for (auto i = lower; i < upper; i += step) {
-    std::cout << (100 * (i - lower)) / (upper - lower) << "% \n";
-    for (auto& test : tests) {
+    for (auto i = lower; i <= upper; i += step) {
+      if (dataComma) outFile << ",";
       statistics_t stats = test.benchmark(i);
-      outFile << stats.mean << "," << stats.min << "," << stats.max << ",";
+      outFile << "[" << stats.mean << ", " << stats.min << ", " << stats.max << "]";
+      dataComma = true;
     }
-    outFile << "\n";
+
+    outFile << "]}";
+    testComma = true;
+    count++;
   }
+
+  std::cout << "100%";
+
+  outFile << "]";
 }
