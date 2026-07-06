@@ -71,3 +71,36 @@ std::vector<double> powersOfTwo(unsigned int repeat, int k) {
   std::shuffle(out.begin(), out.end(), gen);
   return out;
 }
+
+double factorial(int n) {
+  if (n == 0)
+    return 1;
+  double fact = 1;
+  for (auto i = n; i > 1; i--) {
+    fact *= i;
+  }
+  return fact;
+}
+
+std::vector<double> expMaclaurin(int exponent, unsigned int n) {
+  std::vector<double> out;
+
+  for (auto i = 0 ; i < n ; i++) {
+    double u = std::pow(exponent, i) / factorial(i);
+    out.push_back(u);
+  }
+
+  return out;
+}
+
+std::vector<double> expMaclaurinAcc(int exponent, unsigned int n) {
+  std::vector<double> out;
+  double u = 1;
+
+  for (auto i = 1; i < n; i++) {
+    out.push_back(u);
+    u *= (double)exponent / (double)i;
+  }
+
+  return out;
+}
