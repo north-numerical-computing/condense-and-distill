@@ -72,32 +72,17 @@ std::vector<double> powersOfTwo(unsigned int repeat, int k) {
   return out;
 }
 
-double factorial(int n) {
-  if (n == 0)
-    return 1;
-  double fact = 1;
-  for (auto i = n; i > 1; i--) {
-    fact *= i;
-  }
-  return fact;
-}
-
+/* generates maclaurin series for e^-x.
+By setting the exponent to a negative number with large magnitude,
+e^-x approximately equals 0,and therefore the sum of the generated series
+should approximate 0, assuming a long enough sum is taken.
+*/
 std::vector<double> expMaclaurin(int exponent, unsigned int n) {
   std::vector<double> out;
 
-  for (auto i = 0 ; i < n ; i++) {
-    double u = std::pow(exponent, i) / factorial(i);
-    out.push_back(u);
-  }
-
-  return out;
-}
-
-std::vector<double> expMaclaurinAcc(int exponent, unsigned int n) {
-  std::vector<double> out;
   double u = 1;
 
-  for (auto i = 1; i < n; i++) {
+  for (auto i = 1 ; i < n ; i++) {
     out.push_back(u);
     u *= (double)exponent / (double)i;
   }

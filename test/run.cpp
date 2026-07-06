@@ -12,7 +12,6 @@ std::vector<double> randomDataFixed(unsigned int n);
 std::vector<double> pythagoreanPairs(unsigned int n);
 std::vector<double> powersOfTwo(unsigned int repeat, int k);
 std::vector<double> expMaclaurin(int exponent, unsigned int n);
-std::vector<double> expMaclaurinAcc(int exponent, unsigned int n);
 
 int main(int argc, char** argv)
 { int result = Catch::Session().run(argc, argv); }
@@ -55,12 +54,11 @@ TEST_CASE("powers of two") {
 TEST_CASE("e^-x maclaurin series") {
   using namespace Catch::Matchers;
 
-  const int exponent = -20;
-  const int n = 100;
+  const int exponent = -30;
+  const int n = 200;
   auto data = expMaclaurin(exponent, n);
 
   double sum = cadSum(data);
-  std::cout << *std::max_element(data.begin(), data.end()) << "\n" << *data.end() << "\n"; 
 
   REQUIRE_THAT(sum, WithinAbs(0, 0.00001));
 }
