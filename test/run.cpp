@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 TEST_CASE("random") {
   using namespace Catch::Matchers;
 
-  auto data = randomDataFixed(1024);
+  auto data = randomDataFixed(4096);
 
   double sum1 = cadSum(data);
   double sum2 = qdoubleSum(data);
