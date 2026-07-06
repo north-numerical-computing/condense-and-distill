@@ -8,8 +8,9 @@ double kahanSum(std::span<double> data) {
 
     for (double x : data) {
         double y = x - c;
-        double t = sum + y;
-        c = (t - sum) - y;
+        volatile double t = sum + y;
+        volatile double z = t - sum;
+        c = z - y;
 
         sum = t;
     }
