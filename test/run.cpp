@@ -45,7 +45,7 @@ TEST_CASE("powers of two") {
 
   auto data = powersOfTwo(repeat, k);
 
-  double sum = qdoubleSum(data);
+  double sum = cadSum(data);
 
   REQUIRE_THAT(sum, WithinRel(expected, 0.000001));
 }
