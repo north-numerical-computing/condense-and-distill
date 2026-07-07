@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
 
   const std::vector<test_t> tests = {
     {"Condense and distill", "Basic implementation of condense and distill based on original paper.", Bench{cadSum, randomDataFixed}}
-    // {"Quad double", "Implementation of quad-double algorithm (slow but accurate)", Bench{qdoubleSum, randomDataFixed}}
+    /*{"Quad double", "Implementation of quad-double algorithm (slow but accurate)", Bench{qdoubleSum, randomDataFixed}}*/
   };
 
   const int lower = 1000;

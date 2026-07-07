@@ -9,11 +9,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 add_subdirectory(test)
 
-file(CREATE_LINK
-  "${CMAKE_BINARY_DIR}/compile_commands.json"
-  "${CMAKE_SOURCE_DIR}/compile_commands.json"
-  SYMBOLIC
-)
+if (UNIX)
+  file(CREATE_LINK
+    "${CMAKE_BINARY_DIR}/compile_commands.json"
+    "${CMAKE_SOURCE_DIR}/compile_commands.json"
+    SYMBOLIC
+  )
+endif()
 
 enable_testing()
 

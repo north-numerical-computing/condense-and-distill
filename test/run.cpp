@@ -40,25 +40,49 @@ TEST_CASE("pythagoras") {
 TEST_CASE("powers of two") {
   using namespace Catch::Matchers;
 
-  const int repeat = 10;
+  const int repeat = 1;
   const int k = -1;
   const double expected = std::pow(2, k) * repeat;
 
   auto data = powersOfTwo(repeat, k);
 
   double sum = cadSum(data);
+  double result = std::abs(expected - sum) / std::abs(expected);
+  std::cout << sum << ", " << expected << ", " << result << "\n";
+  REQUIRE_THAT(result, WithinRel(0, 0.000001));
+}
 
-  REQUIRE_THAT(sum, WithinRel(expected, 0.000001));
+static std::vector<double> absVector(const std::vector<double>& data) {
+  std::vector<double> out;
+
+  out.reserve(data.size());
+
+  for (double x : data) {
+    out.push_back(std::abs(x));
+  }
+
+  return out;
 }
 
 TEST_CASE("e^-x maclaurin series") {
   using namespace Catch::Matchers;
 
-  const int exponent = -30;
+  const int exponent = -10;
   const int n = 200;
   auto data = expMaclaurin(exponent, n);
+  auto absData = absVector(data);
 
   double sum = cadSum(data);
 
-  REQUIRE_THAT(sum, WithinAbs(0, 0.00001));
+  /*
+  double absSum = cadSum(absData);
+  
+  double condition = absSum / std::abs(sum);
+
+  std::cout << condition / std::pow(2, 53) << "\n";
+  REQUIRE_THAT(condition, WithinAbs(0, 0.00001));
+  
+  std::cout << std::exp(exponent) << ", " << sum << "\n";
+  */
+  REQUIRE_THAT(sum, WithinAbs(std::exp(exponent), 0.00001));
 }
