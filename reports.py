@@ -8,6 +8,8 @@ data = {}
 fill = False
 
 def parseArgs():
+    global data
+    global fill
     for i in range(1, len(sys.argv)):
         if (sys.argv[i] == "-f"):
             fill = True
