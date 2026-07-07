@@ -16,24 +16,26 @@ union _ddata {
   uint64_t b;
 };
 
-uint16_t generateKey(double x) {
+inline uint16_t generateKey(double x) {
   _ddata y;
   y.a = x;
   return (y.b >> 51) | (y.b & 1);
 }
 
-void insert(std::vector<double>& bucket, double value, uint16_t key) {
-  if (bucket[key] == 0) {
-    bucket[key] = value;
+void insert(std::vector<double>::iterator writePtr, double value, uint16_t key) {
+  if (*writePtr == 0) {
+    *writePtr = value;
     return;
   }
 
-  double newValue = bucket[key] + value;
+  double newValue = (*writePtr) + value;
   uint16_t newKey = generateKey(newValue);
 
-  bucket[key] = 0;
+  *writePtr = 0.0;
 
-  insert(bucket, newValue, newKey);
+  if (newKey != key) writePtr++;
+
+  insert(writePtr, newValue, newKey);
 }
 
 double cadSum(std::span<double> sum) {
@@ -43,7 +45,7 @@ double cadSum(std::span<double> sum) {
   for (double i : sum) {
     uint16_t accumulator = generateKey(i);
 
-    insert(bucket, i, accumulator);
+    insert(bucket.begin() + accumulator, i, accumulator);
   }
 
   return qdoubleSum(bucket);
