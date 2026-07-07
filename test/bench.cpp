@@ -76,22 +76,23 @@ int main(int argc, char** argv) {
   std::ofstream outFile("data.json");
 
   const std::vector<test_t> tests = {
-    {"Condense and distill", "Basic implementation of condense and distill based on original paper.", Bench{cadSum, randomDataFixed}},
-    {"Quad double", "Implementation of quad-double algorithm (slow but accurate)", Bench{qdoubleSum, randomDataFixed}}
+    {"Condense and distill", "Basic implementation of condense and distill based on original paper.", Bench{cadSum, randomDataFixed}}
+    // {"Quad double", "Implementation of quad-double algorithm (slow but accurate)", Bench{qdoubleSum, randomDataFixed}}
   };
 
   const int lower = 1000;
   const int upper = 100000;
   const int step =  1000;
 
-  double count = 0;
+  double count = 1;
 
   outFile << "[";
 
   bool testComma = false;
 
   for (auto& test : tests) {
-    std::cout << 100 * count / tests.size() << "%\n";
+    std::cout << "test " << count << "/" << tests.size() << "\n";
+
     if (testComma) outFile << ",";
     outFile << "{\"Name\": \"" << test.name << "\",";
     outFile << "\"Comment\": \"" << test.notes << "\",";
@@ -105,13 +106,12 @@ int main(int argc, char** argv) {
       outFile << "[" << stats.mean << ", " << stats.min << ", " << stats.max << "]";
       dataComma = true;
     }
-
     outFile << "]}";
     testComma = true;
     count++;
   }
 
-  std::cout << "100%";
+  std::cout << "complete";
 
   outFile << "]";
 }

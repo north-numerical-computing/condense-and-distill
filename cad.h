@@ -23,19 +23,24 @@ inline uint16_t generateKey(double x) {
 }
 
 void insert(std::vector<double>::iterator writePtr, double value, uint16_t key) {
-  if (*writePtr == 0) {
-    *writePtr = value;
-    return;
+  _ddata x;
+
+  for (;;) {
+    if (*writePtr == 0) {
+      *writePtr = value;
+      return;
+    }
+
+    value = (*writePtr) + value;
+    x.a = value;
+
+    *writePtr = 0.0;
+
+    if ((x.b & 1) != (key & 1)) {
+      writePtr++;
+      key++;
+    }
   }
-
-  double newValue = (*writePtr) + value;
-  uint16_t newKey = generateKey(newValue);
-
-  *writePtr = 0.0;
-
-  if (newKey != key) writePtr++;
-
-  insert(writePtr, newValue, newKey);
 }
 
 double cadSum(std::span<double> sum) {
