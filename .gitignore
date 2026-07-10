@@ -12,7 +12,6 @@ docs/doxygen/
 docs/Doxyfile
 
 compile_commands.json
-CMakePresets.json
 
 *.docx
 *.backup

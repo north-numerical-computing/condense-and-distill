@@ -1,0 +1,63 @@
+{
+	"version": 9,
+	"configurePresets": [
+		{
+			"name": "windows-default",
+			"displayName": "Windows x64 Debug",
+			"description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, debug build type",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build",
+			"architecture": {
+				"value": "x64",
+				"strategy": "external"
+			},
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+			},
+			"vendor": {
+				"microsoft.com/VisualStudioSettings/CMake/1.0": {
+					"hostOS": [ "Windows" ]
+				}
+			}
+		},
+		{
+			"name": "windows-release-debug-info",
+			"displayName": "Windows x64 RelWithDebInfo",
+			"description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, release build type with debug info",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build",
+			"architecture": {
+				"value": "x64",
+				"strategy": "external"
+			},
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+			},
+			"vendor": {
+				"microsoft.com/VisualStudioSettings/CMake/1.0": {
+					"hostOS": [ "Windows" ]
+				}
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "build-base",
+			"hidden": true,
+			"configurePreset": "windows-default"
+		},
+		{
+			"name": "debug",
+			"displayName": "Build Debug",
+			"inherits": "build-base"
+		},
+		{
+			"name": "RelWithDebInfo",
+			"displayName": "Build RelWithDebInfo",
+			"inherits": "build-base",
+			"configurePreset": "windows-release-debug-info"
+		}
+	]
+}

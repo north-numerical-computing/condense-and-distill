@@ -86,3 +86,12 @@ TEST_CASE("e^-x maclaurin series") {
   */
   REQUIRE_THAT(sum, WithinAbs(std::exp(exponent), 0.00001));
 }
+
+TEST_CASE("correct key generation") {
+  using namespace Catch::Matchers;
+
+  REQUIRE(generateKey(2.0) == 2048);
+  REQUIRE(generateKey(3.0) == 2048);
+  REQUIRE(generateKey(2.0000000000000004) == 2049);
+  REQUIRE(generateKey(3.0000000000000004) == 2049);
+}
