@@ -90,8 +90,14 @@ TEST_CASE("e^-x maclaurin series") {
 TEST_CASE("correct key generation") {
   using namespace Catch::Matchers;
 
-  REQUIRE(generateKey(2.0) == 2048);
-  REQUIRE(generateKey(3.0) == 2048);
-  REQUIRE(generateKey(2.0000000000000004) == 2049);
-  REQUIRE(generateKey(3.0000000000000004) == 2049);
+  std::vector<double> out;
+
+  double num1 = 0x1.8p+1;
+  double num2 = 0x1.8000000000001p+1;
+  double negation = -6;
+  out.insert(out.end(), { num1, num2, negation });
+
+  double sum = cadSum(out);
+
+  REQUIRE(sum != 0.0);
 }

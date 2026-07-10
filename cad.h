@@ -19,7 +19,7 @@ union _ddata {
 inline uint16_t generateKey(double x) {
   _ddata y;
   y.a = x;
-  return ((y.b >> 52) << 1) | (y.b & 1);
+  return (std::rotr(y.b, 1) >> 51);
 }
 
 void insert(std::vector<double>::iterator writePtr, double value, uint16_t key) {

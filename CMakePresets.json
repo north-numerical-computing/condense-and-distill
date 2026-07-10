@@ -13,7 +13,8 @@
 			},
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
-				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+				"CMAKE_CXX_COMPILER": "cl"
 			},
 			"vendor": {
 				"microsoft.com/VisualStudioSettings/CMake/1.0": {
@@ -33,7 +34,8 @@
 			},
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
-				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+				"CMAKE_CXX_COMPILER": "cl"
 			},
 			"vendor": {
 				"microsoft.com/VisualStudioSettings/CMake/1.0": {
