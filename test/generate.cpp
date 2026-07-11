@@ -41,6 +41,32 @@ std::vector<double> pythagoreanPairs(unsigned int n) {
   return out;
 }
 
+/* based on 4.1 Experimental Protocol from paper "Condense and Distill" by Stef Graillat and Theo Mary.
+Generates k random summands x_i - within range [10^-e, 10^e],
+another k summands -x_i, and then a final summand (10^e / cond).
+This gives us a known sum of (10^e / cond); its conditioning is of order k.
+*/
+std::vector<double> randomIllConditionedSum(unsigned int repeat, unsigned int k, int e, double cond) {
+  std::vector<double> out;
+
+  std::mt19937 gen(0);
+  std::uniform_real_distribution<> dis(std::pow(10, -e), std::pow(10, e));
+
+  for (auto i = 0; i < k; i++) {
+    double temp = dis(gen);
+    for (auto j = 0; j < repeat; j++) {
+      out.push_back(temp);
+      out.push_back(-temp);
+    }
+  }
+
+  out.push_back(std::pow(10, e) / cond);
+
+  std::shuffle(out.begin(), out.end(), gen);
+
+  return out;
+}
+
 /* generates range of powers of two that are both positive and negative. 
 a single value (k) will be skipped on the negative side.
 These powers of two can be repeated n times
@@ -49,8 +75,8 @@ resulting in a summation that should equal n*2^k
 std::vector<double> powersOfTwo(unsigned int repeat, int k) {
   std::vector<double> temp;
 
-  const int lower = -100;
-  const int upper = 100;
+  const int lower = -32;
+  const int upper = 32;
   
   for (int i = lower ; i <= upper ; i++) {
     double u = std::pow(2, i);

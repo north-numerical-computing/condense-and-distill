@@ -12,6 +12,7 @@ std::vector<double> randomDataFixed(unsigned int n);
 std::vector<double> pythagoreanPairs(unsigned int n);
 std::vector<double> powersOfTwo(unsigned int repeat, int k);
 std::vector<double> expMaclaurin(int exponent, unsigned int n);
+std::vector<double> randomIllConditionedSum(unsigned int repeat, unsigned int k, int e, double cond);
 
 int main(int argc, char** argv)
 { int result = Catch::Session().run(argc, argv); }
@@ -37,10 +38,26 @@ TEST_CASE("pythagoras") {
   REQUIRE_THAT(sum, WithinRel(pairs, 0.000001));
 }
 
+TEST_CASE("random ill-conditioned sum") {
+  using namespace Catch::Matchers;
+
+  const int repeat = 8;
+  const int k = 4096;
+  const int e = 32;
+  const double cond = std::pow(10, 50);
+  const double expected = std::pow(10, e) / cond;
+
+  auto data = randomIllConditionedSum(repeat, k, e, cond);
+
+  double sum = cadSum(data);
+  std::cout << "ILL CONDITIONED TEST: " << expected << ", " << sum << "\n";
+  REQUIRE(sum == expected); 
+}
+
 TEST_CASE("powers of two") {
   using namespace Catch::Matchers;
 
-  const int repeat = 1;
+  const int repeat = 64;
   const int k = -1;
   const double expected = std::pow(2, k) * repeat;
 
@@ -48,8 +65,8 @@ TEST_CASE("powers of two") {
 
   double sum = cadSum(data);
   double result = std::abs(expected - sum) / std::abs(expected);
-  std::cout << sum << ", " << expected << ", " << result << "\n";
-  REQUIRE_THAT(result, WithinRel(0, 0.000001));
+  std::cout << "POWERS OF TWO TEST: " << sum << ", " << expected << ", " << result << "\n";
+  REQUIRE(result == 0);
 }
 
 static std::vector<double> absVector(const std::vector<double>& data) {

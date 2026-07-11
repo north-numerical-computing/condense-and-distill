@@ -36,10 +36,9 @@ void insert(std::vector<double>::iterator writePtr, double value, uint16_t key) 
 
     *writePtr = 0.0;
 
-    if ((x.b & 1) != ((key >> 12) & 1)) {
-      writePtr++;
-      key++;
-    }
+    uint16_t newKey = ((key + 1) & ~(1 << 12)) | ((x.b & 1) << 12);
+    writePtr += newKey - key;
+    key = newKey;
   }
 }
 
