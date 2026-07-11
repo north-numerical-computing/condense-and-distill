@@ -22,23 +22,20 @@ inline uint16_t generateKey(double x) {
   return (std::rotr(y.b, 1) >> 51);
 }
 
-void insert(std::vector<double>::iterator writePtr, double value, uint16_t key) {
+void insert(std::vector<double>::iterator basePtr, double value, uint16_t key) {
   _ddata x;
 
   for (;;) {
-    if (*writePtr == 0) {
-      *writePtr = value;
+    if (*(basePtr + key) == 0) {
+      *(basePtr + key) = value;
       return;
     }
 
-    value = (*writePtr) + value;
-    x.a = value;
+    value = (*(basePtr + key)) + value;
 
-    *writePtr = 0.0;
+    *(basePtr + key) = 0.0;
 
-    uint16_t newKey = ((key + 1) & ~(1 << 12)) | ((x.b & 1) << 12);
-    writePtr += newKey - key;
-    key = newKey;
+    key = generateKey(value);
   }
 }
 
@@ -49,7 +46,7 @@ double cadSum(std::span<double> sum) {
   for (double i : sum) {
     uint16_t accumulator = generateKey(i);
 
-    insert(bucket.begin() + accumulator, i, accumulator);
+    insert(bucket.begin(), i, accumulator);
   }
 
   return qdoubleSum(bucket);
