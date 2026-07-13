@@ -4,7 +4,8 @@
 #include <cmath>
 #include <numbers>
 #include <random>
-#include <vector>
+
+#include "generate.h"
 
 union _ddata {
   double a;
