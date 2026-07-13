@@ -45,7 +45,6 @@ TEST_CASE("powers of two") {
 
   double sum = cadSum(data);
   double result = std::abs(expected - sum) / std::abs(expected);
-  std::cout << sum << ", " << expected << ", " << result << "\n";
   REQUIRE_THAT(result, WithinRel(0, 0.000001));
 }
 
