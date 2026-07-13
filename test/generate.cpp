@@ -6,15 +6,25 @@
 #include <random>
 #include <vector>
 
+union _ddata {
+  double a;
+  uint64_t b;
+};
+
 /* random data, fixed seed */
 std::vector<double> randomDataFixed(unsigned int n) {
   std::vector<double> out;
 
-  std::mt19937 gen(0);
-  std::uniform_real_distribution<> dis(-10000, 10000);
+  std::mt19937_64 gen(0);
+  std::uniform_int_distribution<uint64_t> sign(0, 1);
+  std::uniform_int_distribution<uint64_t> exponent(1, 0x7FE);
+  std::uniform_int_distribution<uint64_t> mantissa(0, 0xfffffffffffff);
 
   for (auto i = 0 ; i < n ; i++) {
-    out.push_back(dis(gen));
+    _ddata d;
+    
+    d.b = (sign(gen) << 63) | (exponent(gen) << 62) | (mantissa(gen));
+    out.push_back(d.a);
   }
 
   return out;
