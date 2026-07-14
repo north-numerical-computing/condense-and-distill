@@ -1,11 +1,14 @@
 #pragma once 
 
-#include <iostream>
 #include <cstdint>
 #include <cstring>
 #include <vector>
 #include <span>
 #include <memory>
+
+#include <iostream>
+#include <iomanip>
+#include <cassert>
 
 #include <unordered_map>
 
@@ -39,6 +42,16 @@ void insert(std::vector<double>::iterator basePtr, double value, uint16_t key) {
   }
 }
 
+void assertKeys(std::vector<double>& bucket) {
+  for (size_t i = 0 ; i < bucket.size() ; i++) {
+    if (bucket[i] == 0.0) continue;
+
+    if (generateKey(bucket[i]) != i) {
+      assert(0);
+    }
+  }
+}
+
 double cadSum(std::span<double> sum) {
   std::vector<double> bucket(8191, 0);
   double total;
@@ -48,6 +61,10 @@ double cadSum(std::span<double> sum) {
 
     insert(bucket.begin(), i, accumulator);
   }
+
+  #ifndef NDEBUG
+  assertKeys(bucket);
+  #endif
 
   return qdoubleSum(bucket);
 }
