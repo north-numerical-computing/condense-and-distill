@@ -108,21 +108,3 @@ std::vector<double> powersOfTwo(unsigned int repeat, int k) {
   std::shuffle(out.begin(), out.end(), gen);
   return out;
 }
-
-/* generates maclaurin series for e^-x.
-By setting the exponent to a negative number with large magnitude,
-e^-x approximately equals 0,and therefore the sum of the generated series
-should approximate 0, assuming a long enough sum is taken.
-*/
-std::vector<double> expMaclaurin(int exponent, unsigned int n) {
-  std::vector<double> out;
-
-  double u = 1;
-
-  for (auto i = 1 ; i < n ; i++) {
-    out.push_back(u);
-    u *= (double)exponent / (double)i;
-  }
-
-  return out;
-}
