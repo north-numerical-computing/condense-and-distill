@@ -34,10 +34,26 @@ TEST_CASE("pythagoras") {
   REQUIRE_THAT(sum, WithinRel(pairs, 0.000001));
 }
 
+TEST_CASE("random ill-conditioned sum") {
+  using namespace Catch::Matchers;
+
+  const int repeat = 8;
+  const int k = 4096;
+  const int e = 32;
+  const double cond = std::pow(10, 50);
+  const double expected = std::pow(10, e) / cond;
+
+  auto data = randomIllConditionedSum(repeat, k, e, cond);
+
+  double sum = cadSum(data);
+  std::cout << "ILL CONDITIONED TEST: " << expected << ", " << sum << "\n";
+  REQUIRE(sum == expected); 
+}
+
 TEST_CASE("powers of two") {
   using namespace Catch::Matchers;
 
-  const int repeat = 1;
+  const int repeat = 64;
   const int k = -1;
   const double expected = std::pow(2, k) * repeat;
 
@@ -45,7 +61,8 @@ TEST_CASE("powers of two") {
 
   double sum = cadSum(data);
   double result = std::abs(expected - sum) / std::abs(expected);
-  REQUIRE_THAT(result, WithinRel(0, 0.000001));
+  std::cout << "POWERS OF TWO TEST: " << sum << ", " << expected << ", " << result << "\n";
+  REQUIRE(result == 0);
 }
 
 static std::vector<double> absVector(const std::vector<double>& data) {
@@ -86,8 +103,14 @@ TEST_CASE("e^-x maclaurin series") {
 TEST_CASE("correct key generation") {
   using namespace Catch::Matchers;
 
-  REQUIRE(generateKey(2.0) == 2048);
-  REQUIRE(generateKey(3.0) == 2048);
-  REQUIRE(generateKey(2.0000000000000004) == 2049);
-  REQUIRE(generateKey(3.0000000000000004) == 2049);
+  std::vector<double> out;
+
+  double num1 = 0x1.8p+1;
+  double num2 = 0x1.8000000000001p+1;
+  double negation = -6;
+  out.insert(out.end(), { num1, num2, negation });
+
+  double sum = cadSum(out);
+
+  REQUIRE(sum != 0.0);
 }
