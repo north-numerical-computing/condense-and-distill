@@ -50,7 +50,7 @@ title = title[:-1]
 
 ax.set_title(title)
 
-#plotAllTest("Quad double")
+plotTest("Quad double", "first")
 plotAllTest("Condense and distill")
 #plotTest("Kahan sum")
 
