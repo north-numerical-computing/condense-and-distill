@@ -6,6 +6,8 @@
 #include <vector>
 #include <fstream>
 
+#include "generate.h"
+
 #include "cad.h"
 #include "qdouble.h"
 
@@ -63,8 +65,6 @@ struct Bench {
   summation_t algorithm;
   data_generator_t generator;
 };
-
-std::vector<double> randomDataFixed(unsigned int n);
 
 struct test_t {
   const char* name;

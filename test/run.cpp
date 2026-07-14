@@ -5,14 +5,10 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_session.hpp>
 
+#include "generate.h"
+
 #include "cad.h"
 #include "kahan.h"
-
-std::vector<double> randomDataFixed(unsigned int n);
-std::vector<double> pythagoreanPairs(unsigned int n);
-std::vector<double> powersOfTwo(unsigned int repeat, int k);
-std::vector<double> expMaclaurin(int exponent, unsigned int n);
-std::vector<double> randomIllConditionedSum(unsigned int repeat, unsigned int k, int e, double cond);
 
 int main(int argc, char** argv)
 { int result = Catch::Session().run(argc, argv); }
