@@ -25,18 +25,18 @@ inline uint16_t generateKey(double x) {
   return (std::rotr(y.b, 1) >> 51);
 }
 
-void insert(std::vector<double>::iterator basePtr, double value, uint16_t key) {
+void insert(std::vector<double>& bucket, double value, uint16_t key) {
   _ddata x;
 
   for (;;) {
-    if (*(basePtr + key) == 0) {
-      *(basePtr + key) = value;
+    if (bucket[key] == 0) {
+      bucket[key] = value;
       return;
     }
 
-    value = (*(basePtr + key)) + value;
+    value = bucket[key] + value;
 
-    *(basePtr + key) = 0.0;
+    bucket[key] = 0.0;
 
     key = generateKey(value);
   }
@@ -59,7 +59,7 @@ double cadSum(std::span<double> sum) {
   for (double i : sum) {
     uint16_t accumulator = generateKey(i);
 
-    insert(bucket.begin(), i, accumulator);
+    insert(bucket, i, accumulator);
   }
 
   #ifndef NDEBUG
