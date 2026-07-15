@@ -60,14 +60,19 @@ This gives us a known sum of (10^e / cond); its conditioning is of order k.
 std::vector<double> randomIllConditionedSum(unsigned int repeat, unsigned int k, int e, double cond) {
   std::vector<double> out;
 
-  std::mt19937 gen(0);
-  std::uniform_real_distribution<> dis(std::pow(10, -e), std::pow(10, e));
+  std::mt19937_64 gen(0);
+  std::uniform_int_distribution<uint64_t> sign(0, 1);
+  std::uniform_int_distribution<uint64_t> exponent(1, 0x7FE);
+  std::uniform_int_distribution<uint64_t> mantissa(0, 0xfffffffffffff);
+
+  _ddata temp;
 
   for (auto i = 0; i < k; i++) {
-    double temp = dis(gen);
+    temp.b = (sign(gen) << 63) | (exponent(gen) << 62) | (mantissa(gen));
+
     for (auto j = 0; j < repeat; j++) {
-      out.push_back(temp);
-      out.push_back(-temp);
+      out.push_back(temp.a);
+      out.push_back(-temp.a);
     }
   }
 
@@ -106,5 +111,35 @@ std::vector<double> powersOfTwo(unsigned int repeat, int k) {
 
   std::mt19937 gen(0);
   std::shuffle(out.begin(), out.end(), gen);
+  return out;
+}
+
+std::vector<double> powersOfTwoWithLSB(unsigned int repeat, int k) {
+  std::vector<double> temp; 
+
+  const int lower = -32;
+  const int upper = 32; 
+
+  _ddata u;
+
+  for (int i = lower ; i <= upper ; i++) {
+    u.a = std::pow(2, i);
+    temp.push_back(u.a);
+    if (i != k) temp.push_back(-u.a);
+    u.b = u.b | 0x1;
+    temp.push_back(u.a);
+    temp.push_back(-u.a);
+  }
+
+  std::vector<double> out;
+  out.reserve(temp.size() * repeat);
+
+  for (int i = 0 ; i < repeat ; i++) {
+    out.insert(out.end(), temp.begin(), temp.end());
+  }
+
+  std::mt19937 gen(0);
+  std::shuffle(out.begin(), out.end(), gen);
+
   return out;
 }
