@@ -10,8 +10,6 @@
 #include <iomanip>
 #include <cassert>
 
-#include <unordered_map>
-
 #include "qdouble.h"
 
 union _ddata {
