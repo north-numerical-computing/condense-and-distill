@@ -10,6 +10,12 @@
 #include <iomanip>
 #include <cassert>
 
+#ifdef __SSE2__
+#include <immintrin.h>
+#else 
+#warning SSE2 not supported!
+#endif 
+
 #include "qdouble.h"
 
 union _ddata {
@@ -20,12 +26,10 @@ union _ddata {
 inline uint16_t generateKey(double x) {
   _ddata y;
   y.a = x;
-  return (std::rotr(y.b, 1) >> 51);
+  return ((y.b >> 52) << 1) | (y.b & 1);
 }
 
 void insert(std::vector<double>& bucket, double value, uint16_t key) {
-  _ddata x;
-
   for (;;) {
     if (bucket[key] == 0) {
       bucket[key] = value;
@@ -50,7 +54,62 @@ void assertKeys(std::vector<double>& bucket) {
   }
 }
 
+inline __m128i generateKeys(__m128d values) {
+  __m128i a = _mm_castpd_si128(values);       /* get raw bits of the two doubles */
+  __m128i b = _mm_srli_epi64(a, 52);          /* shift them both down by 52 */
+  b = _mm_slli_epi64(b, 1);                   /* shift them both up by 1 */
+  __m128i mask = _mm_set1_epi64x(0x1);        /* create a mask for the bottom bit of both values */
+  a = _mm_and_si128(a, mask);                 /* and them to get the LSB of the two doubles */
+  return _mm_or_si128(a, b);                  /* return the LSB ored with the shifted values */
+}
+
+inline bool keysEqual(__m128i keys) {
+  __m128i flipped = _mm_shuffle_epi32(keys, 0b01001110); /* flip the register so (A|B) -> (B|A) */
+  __m128i cmp = _mm_cmpeq_epi8(keys, flipped);    /* then compare the two registers */
+  return (_mm_movemask_epi8(cmp) == 0xffff);
+}
+
+std::vector<double> condense(std::span<double> input) {
+  std::vector<double> out(8191, 0);
+
+  double* readPtr = input.data();
+  __m128d currentOperand = _mm_load_pd(readPtr);
+  readPtr += 2;
+
+  while (readPtr < input.data() + input.size()) {
+    __m128i keys = generateKeys(currentOperand);
+
+    if (keysEqual(keys)) {
+      currentOperand[0] = currentOperand[0] + currentOperand[1];
+      currentOperand[1] = *readPtr++;
+      continue;
+    }
+
+    __m128d existing = _mm_set_pd(out[keys[1]], out[keys[0]]);
+    currentOperand = _mm_add_pd(currentOperand, existing);
+
+    if (out[keys[0]] == 0) {
+      out[keys[0]] = currentOperand[0];
+      currentOperand[0] = *readPtr++;
+    }
+    else {
+      out[keys[0]] = 0;
+    }
+
+    if (out[keys[1]] == 0) {
+      out[keys[1]] = currentOperand[1];
+      currentOperand[1] = *readPtr++;
+    }
+    else {
+      out[keys[1]] = 0;
+    }
+  }
+
+  return out;
+}
+
 double cadSum(std::span<double> sum) {
+  /*
   std::vector<double> bucket(8191, 0);
   double total;
 
@@ -59,10 +118,13 @@ double cadSum(std::span<double> sum) {
 
     insert(bucket, i, accumulator);
   }
+    */
+
+  auto out = condense(sum);
 
   #ifndef NDEBUG
-  assertKeys(bucket);
+  assertKeys(out);
   #endif
 
-  return qdoubleSum(bucket);
+  return qdoubleSum(out);
 }
