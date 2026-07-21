@@ -64,24 +64,26 @@ inline __m128i generateKeys(__m128d values) {
 }
 
 inline bool keysEqual(__m128i keys) {
-  __m128i flipped = _mm_shuffle_epi32(keys, 0b01001110); /* flip the register so (A|B) -> (B|A) */
-  __m128i cmp = _mm_cmpeq_epi8(keys, flipped);    /* then compare the two registers */
-  return (_mm_movemask_epi8(cmp) == 0xffff);
+  return keys[0] == keys[1];
 }
 
 std::vector<double> condense(std::span<double> input) {
+  /* some issues with the final values in the array either not 
+   * getting counted properly... or the readPtr extending past
+   * the end of the array and adding garbage */
+
   std::vector<double> out(8191, 0);
 
   double* readPtr = input.data();
   __m128d currentOperand = _mm_load_pd(readPtr);
   readPtr += 2;
 
-  while (readPtr < input.data() + input.size()) {
+  while (readPtr <= input.data() + input.size()) {
     __m128i keys = generateKeys(currentOperand);
 
     if (keysEqual(keys)) {
-      currentOperand[0] = currentOperand[0] + currentOperand[1];
-      currentOperand[1] = *readPtr++;
+      currentOperand[1] = currentOperand[0] + currentOperand[1];
+      currentOperand[0] = *readPtr++;
       continue;
     }
 
@@ -98,7 +100,8 @@ std::vector<double> condense(std::span<double> input) {
 
     if (out[keys[1]] == 0) {
       out[keys[1]] = currentOperand[1];
-      currentOperand[1] = *readPtr++;
+      if (readPtr == input.data() + input.size()) currentOperand[1] = 0;
+      else currentOperand[1] = *readPtr++;
     }
     else {
       out[keys[1]] = 0;
