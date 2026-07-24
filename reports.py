@@ -52,7 +52,11 @@ ax.set_title(title)
 
 plotTest("Quad double", "first")
 plotAllTest("Condense and distill")
-#plotTest("Kahan sum")
+plotAllTest("Acc Sum")
+plotAllTest("Hida")
+plotAllTest("Exact")
+plotAllTest("Facc Sum")
+plotAllTest("Prec Sum")
 
 plt.legend()
 plt.show()

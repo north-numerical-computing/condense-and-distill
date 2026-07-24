@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 
 add_subdirectory(test)
+add_subdirectory(ft)
 
 if (UNIX)
   file(CREATE_LINK

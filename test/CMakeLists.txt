@@ -28,4 +28,7 @@ add_executable(bench
   generate.cpp
 )
 
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lgfortran")
+
+target_link_libraries(bench PRIVATE ft-modules)
 target_include_directories(bench PRIVATE ${CMAKE_SOURCE_DIR})

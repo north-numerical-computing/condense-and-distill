@@ -6,6 +6,8 @@
 #include <vector>
 #include <fstream>
 
+#include <ft/ft-module.h>
+
 #include "generate.h"
 
 #include "cad.h"
@@ -77,11 +79,19 @@ int main(int argc, char** argv) {
 
   const std::vector<test_t> tests = {
     {"Condense and distill", "Basic implementation of condense and distill based on original paper.", Bench{cadSum, randomDataFixed}},
+    {"Acc Sum", "Fortran impl", Bench{accSum, randomDataFixed}},
+    {"Hida", "Demmel Hida impl", Bench{demmelHidaSum, randomDataFixed}},
+    {"Exact", "Fortran version of cad", Bench{exactSum, randomDataFixed}},
+    {"Facc Sum", "", Bench{fastAccSum, randomDataFixed}},
+    {"Prec Sum", "", Bench{precSum, randomDataFixed}},
     {"Quad double", "Implementation of quad-double algorithm (slow but accurate)", Bench{qdoubleSum, randomDataFixed}}  };
 
   const int lower = 1000;
   const int upper = 100000;
   const int step =  1000;
+
+  std::vector<double> x = { 0.5, 0.5, 0.1, 0.1 };
+  auto sum = exactSum(x);
 
   double count = 1;
 
