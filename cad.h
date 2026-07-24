@@ -1,5 +1,6 @@
 #pragma once 
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -16,6 +17,10 @@
 #warning SSE2 not supported!
 #endif 
 
+#ifndef __AVX__
+#warning AVX not supported!
+#endif
+
 #include "qdouble.h"
 
 union _ddata {
@@ -23,36 +28,38 @@ union _ddata {
   uint64_t b;
 };
 
+/* Condense one at a time impl */
+
 inline uint16_t generateKey(double x) {
   _ddata y;
   y.a = x;
   return ((y.b >> 52) << 1) | (y.b & 1);
 }
 
-void insert(std::vector<double>& bucket, double value, uint16_t key) {
-  for (;;) {
-    if (bucket[key] == 0) {
-      bucket[key] = value;
-      return;
-    }
+std::vector<double> condenseOne(std::span<double> input) {
+  std::vector<double> out(8191, 0);
+  uint16_t key;
 
-    value = bucket[key] + value;
-
-    bucket[key] = 0.0;
-
+  for (double value : input) {
     key = generateKey(value);
-  }
-}
 
-void assertKeys(std::vector<double>& bucket) {
-  for (size_t i = 0 ; i < bucket.size() ; i++) {
-    if (bucket[i] == 0.0) continue;
+    for (;;) {
+      if (out[key] == 0) {
+        out[key] = value;
+        break;
+      }
 
-    if (generateKey(bucket[i]) != i) {
-      assert(0);
+      value = out[key] + value;
+
+      out[key] = 0.0;
+
+      key = generateKey(value);
     }
-  }
+  } 
+  return out;
 }
+
+/* Condense two at a time impl */
 
 inline __m128i generateKeys(__m128d values) {
   __m128i a = _mm_castpd_si128(values);       /* get raw bits of the two doubles */
@@ -67,7 +74,7 @@ inline bool keysEqual(__m128i keys) {
   return keys[0] == keys[1];
 }
 
-std::vector<double> condense(std::span<double> input) {
+std::vector<double> condenseTwo(std::span<double> input) {
   /* some issues with the final values in the array either not 
    * getting counted properly... or the readPtr extending past
    * the end of the array and adding garbage */
@@ -111,20 +118,96 @@ std::vector<double> condense(std::span<double> input) {
   return out;
 }
 
-double cadSum(std::span<double> sum) {
-  /*
-  std::vector<double> bucket(8191, 0);
-  double total;
+/* Condense four at a time impl */
 
-  for (double i : sum) {
-    uint16_t accumulator = generateKey(i);
+inline __m256i generateFourKeys(__m256d values) {
+  __m256i a = _mm256_castpd_si256(values);       /* get raw bits of the two doubles */
+  __m256i b = _mm256_srli_epi64(a, 52);          /* shift them both down by 52 */
+  b = _mm256_slli_epi64(b, 1);                   /* shift them both up by 1 */
+  __m256i mask = _mm256_set1_epi64x(0x1);        /* create a mask for the bottom bit of both values */
+  a = _mm256_and_si256(a, mask);                 /* and them to get the LSB of the two doubles */
+  return _mm256_or_si256(a, b);                  /* return the LSB ored with the shifted values */
+}
 
-    insert(bucket, i, accumulator);
+/* returns index of equal key, -1 if all clear */
+inline bool keysFourEquals(__m256i keys, __m256d& values) {
+  for (int i = 0 ; i < 3 ; i++) {
+    if (std::isnan(keys[i])) continue;
+    for (int j = i + 1 ; j < 4 ; j++) {
+      if (keys[i] == keys[j]) {
+        values[i] += values[j];
+        values[j] = std::nan("");
+        return true;
+      }
+    }
   }
-    */
+  return false;
+}
 
+inline bool nan256(__m256d values) {
+  if (std::isnan(values[0])) return true;
+  if (std::isnan(values[1])) return true;
+  if (std::isnan(values[2])) return true;
+  if (std::isnan(values[3])) return true;
+  return false;
+}
+
+std::vector<double> condenseFour(std::span<double> input) {
+  std::vector<double> out(8191, 0);
+
+  if (input.size() < 4) return condenseOne(input);
+
+  double* readPtr = input.data();
+  __m256d currentOperand = _mm256_loadu_pd(readPtr);
+  readPtr += 4;
+
+  int index;
+
+  while (readPtr < input.data() + input.size()) {
+
+      do {
+      __m256i keys = generateFourKeys(currentOperand);
+
+      if (keysFourEquals(keys, currentOperand)) continue;
+
+      __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
+      currentOperand = _mm256_add_pd(currentOperand, existing);
+
+      for (int i = 0 ; i < 4 ; i++) {
+        if (std::isnan(currentOperand[i])) continue;
+
+        if (out[keys[i]] == 0) {
+          out[keys[i]] = currentOperand[i];
+          currentOperand[i] = std::nan("");
+        }
+        else {
+          out[keys[i]] = 0;
+        }
+      }
+    } while (!nan256(currentOperand));
+
+    currentOperand = _mm256_loadu_pd(readPtr);
+    readPtr += 4;
+  } 
+
+  return out;
+}
+
+void assertKeys(std::vector<double>& bucket) {
+  for (size_t i = 0 ; i < bucket.size() ; i++) {
+    if (bucket[i] == 0.0) continue;
+
+    if (generateKey(bucket[i]) != i) {
+      assert(0);
+    }
+  }
+}
+
+#define condense condenseFour
+
+double cadSum(std::span<double> sum) {
   auto out = condense(sum);
-
+  
   #ifndef NDEBUG
   assertKeys(out);
   #endif
