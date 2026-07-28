@@ -6,9 +6,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
+set(FT_EXAMPLES off)
 
 add_subdirectory(test)
-add_subdirectory(ft)
+
+if (${FT_EXAMPLES})
+  add_subdirectory(ft)
+endif()
 
 if (UNIX)
   file(CREATE_LINK
