@@ -1,6 +1,7 @@
 #pragma once 
 
 #include <cmath>
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -130,18 +131,16 @@ inline __m256i generateFourKeys(__m256d values) {
 }
 
 /* returns index of equal key, -1 if all clear */
-inline bool keysFourEquals(__m256i keys, __m256d& values) {
+inline std::array<int, 2> keysFourEquals(__m256i keys) {
   for (int i = 0 ; i < 3 ; i++) {
     if (std::isnan(keys[i])) continue;
     for (int j = i + 1 ; j < 4 ; j++) {
       if (keys[i] == keys[j]) {
-        values[i] += values[j];
-        values[j] = std::nan("");
-        return true;
+        return {i, j};
       }
     }
   }
-  return false;
+  return {-1, -1};
 }
 
 inline bool nan256(__m256d values) {
@@ -163,32 +162,32 @@ std::vector<double> condenseFour(std::span<double> input) {
 
   int index;
 
-  while (readPtr < input.data() + input.size()) {
+  while (readPtr <= input.data() + input.size() + 1) {
+    __m256i keys = generateFourKeys(currentOperand);
 
-      do {
-      __m256i keys = generateFourKeys(currentOperand);
+    auto keyCollisions = keysFourEquals(keys);
+    if (keyCollisions[0] != -1) {
+      currentOperand[keyCollisions[1]] = currentOperand[keyCollisions[0]] + currentOperand[keyCollisions[1]];
+      currentOperand[keyCollisions[0]] = *readPtr++;
+      continue;
+    }
 
-      if (keysFourEquals(keys, currentOperand)) continue;
+    __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
+    currentOperand = _mm256_add_pd(currentOperand, existing);
 
-      __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
-      currentOperand = _mm256_add_pd(currentOperand, existing);
+    for (int i = 0 ; i < 4 ; i++) {
+      if (std::isnan(currentOperand[i])) continue;
 
-      for (int i = 0 ; i < 4 ; i++) {
-        if (std::isnan(currentOperand[i])) continue;
-
-        if (out[keys[i]] == 0) {
-          out[keys[i]] = currentOperand[i];
-          currentOperand[i] = std::nan("");
-        }
-        else {
-          out[keys[i]] = 0;
-        }
+      if (out[keys[i]] == 0) {
+        out[keys[i]] = currentOperand[i];
+        if (readPtr == input.data() + input.size()) currentOperand[i] = std::nan("");
+        else currentOperand[i] = *readPtr++;
       }
-    } while (!nan256(currentOperand));
-
-    currentOperand = _mm256_loadu_pd(readPtr);
-    readPtr += 4;
-  } 
+      else {
+        out[keys[i]] = 0;
+      }
+    }
+  }
 
   return out;
 }

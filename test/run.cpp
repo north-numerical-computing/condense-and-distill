@@ -2,6 +2,8 @@
 #include <vector>
 
 #include <iostream>
+#include <fstream>
+
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -46,6 +48,16 @@ TEST_CASE("random ill-conditioned sum") {
   const double expected = std::pow(10, e) / cond;
 
   auto data = randomIllConditionedSum(repeat, k, e, cond);
+
+/*
+  int i = 0;
+  std::vector<double>::iterator it;
+  std::ofstream randSumData("randSumData.txt");
+  for (it = data.begin(); it != data.end(); it++, i++) {
+    randSumData << *it << "\n";
+  }
+  randSumData.close();
+*/
 
   double sum = cadSum(data);
   std::cout << "ILL CONDITIONED TEST: " << expected << ", " << sum << "\n";
