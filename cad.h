@@ -151,6 +151,11 @@ inline bool nan256(__m256d values) {
   return false;
 }
 
+inline bool allNan256(__m256d values) {
+  if (std::isnan(values[0]) and std::isnan(values[1]) and std::isnan(values[2]) and std::isnan(values[3])) return true;
+  return false;
+}
+
 std::vector<double> condenseFour(std::span<double> input) {
   std::vector<double> out(8191, 0);
 
@@ -162,13 +167,21 @@ std::vector<double> condenseFour(std::span<double> input) {
 
   int index;
 
-  while (readPtr <= input.data() + input.size() + 1) {
+  while (!allNan256(currentOperand)) {
     __m256i keys = generateFourKeys(currentOperand);
 
     auto keyCollisions = keysFourEquals(keys);
+    std::cout << keyCollisions[0] << "\n" << keyCollisions[1] << "\n";
+    std::cout << currentOperand[keyCollisions[0]] << "\n" << currentOperand[keyCollisions[1]] << "\n";
+    std::cout << "OPERANDS ABOVE \n";
     if (keyCollisions[0] != -1) {
       currentOperand[keyCollisions[1]] = currentOperand[keyCollisions[0]] + currentOperand[keyCollisions[1]];
-      currentOperand[keyCollisions[0]] = *readPtr++;
+      if (readPtr >= input.data() + input.size()) {
+          currentOperand[keyCollisions[0]] = std::nan("");
+          std::cout << "TURNED YOU INTO A NAN \n";
+      } else { 
+        currentOperand[keyCollisions[0]] = *readPtr++;
+      }
       continue;
     }
 
@@ -178,17 +191,23 @@ std::vector<double> condenseFour(std::span<double> input) {
     for (int i = 0 ; i < 4 ; i++) {
       if (std::isnan(currentOperand[i])) continue;
 
-      if (out[keys[i]] == 0) {
+      if (existing[i] == 0) {
         out[keys[i]] = currentOperand[i];
-        if (readPtr == input.data() + input.size()) currentOperand[i] = std::nan("");
-        else currentOperand[i] = *readPtr++;
+        if (readPtr >= input.data() + input.size()) {
+          std::cout << "TURNED YOU INTO A NAN \n";
+          currentOperand[i] = std::nan("");
+        } else { 
+          currentOperand[i] = *readPtr++;
+        }
       }
       else {
         out[keys[i]] = 0;
       }
-    }
-  }
 
+    }
+    if (std::isnan(currentOperand[0])) std::cout << "WE MADE IT \n";
+  }
+  std::cout << currentOperand[0] << "\n" << currentOperand[1] << "\n" << currentOperand[2] << "\n" << currentOperand[3] << "\n";
   return out;
 }
 

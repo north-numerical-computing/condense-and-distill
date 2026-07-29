@@ -33,6 +33,14 @@ TEST_CASE("pythagoras") {
   const unsigned int pairs = 2048;
   auto data = pythagoreanPairs(pairs);
 
+  int i = 0;
+  std::vector<double>::iterator it;
+  std::ofstream pythagorasData("pythagorasData.txt");
+  for (it = data.begin(); it != data.end(); it++, i++) {
+    pythagorasData << *it << "\n";
+  }
+  pythagorasData.close();
+
   double sum = cadSum(data);
 
   REQUIRE_THAT(sum, WithinRel(pairs, 0.000001));
@@ -49,7 +57,6 @@ TEST_CASE("random ill-conditioned sum") {
 
   auto data = randomIllConditionedSum(repeat, k, e, cond);
 
-/*
   int i = 0;
   std::vector<double>::iterator it;
   std::ofstream randSumData("randSumData.txt");
@@ -57,7 +64,6 @@ TEST_CASE("random ill-conditioned sum") {
     randSumData << *it << "\n";
   }
   randSumData.close();
-*/
 
   double sum = cadSum(data);
   std::cout << "ILL CONDITIONED TEST: " << expected << ", " << sum << "\n";
