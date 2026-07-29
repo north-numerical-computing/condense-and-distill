@@ -50,9 +50,7 @@ title = title[:-1]
 
 ax.set_title(title)
 
-plotTest("Quad double", "first")
 plotAllTest("Condense and distill")
-#plotTest("Kahan sum")
 
 plt.legend()
 plt.show()

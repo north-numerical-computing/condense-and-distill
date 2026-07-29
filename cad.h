@@ -1,12 +1,12 @@
 #pragma once 
 
 #include <cmath>
-#include <array>
 #include <cstdint>
 #include <cstring>
 #include <vector>
 #include <span>
 #include <memory>
+#include <utility>
 
 #include <iostream>
 #include <iomanip>
@@ -131,9 +131,9 @@ inline __m256i generateFourKeys(__m256d values) {
 }
 
 /* returns index of equal key, -1 if all clear */
-inline std::array<int, 2> keysFourEquals(__m256i keys) {
+inline std::pair<int, int> keysFourEquals(__m256i keys, __m256d values) {
   for (int i = 0 ; i < 3 ; i++) {
-    if (std::isnan(keys[i])) continue;
+    if (std::isnan(values[i])) continue;
     for (int j = i + 1 ; j < 4 ; j++) {
       if (keys[i] == keys[j]) {
         return {i, j};
@@ -170,17 +170,13 @@ std::vector<double> condenseFour(std::span<double> input) {
   while (!allNan256(currentOperand)) {
     __m256i keys = generateFourKeys(currentOperand);
 
-    auto keyCollisions = keysFourEquals(keys);
-    std::cout << keyCollisions[0] << "\n" << keyCollisions[1] << "\n";
-    std::cout << currentOperand[keyCollisions[0]] << "\n" << currentOperand[keyCollisions[1]] << "\n";
-    std::cout << "OPERANDS ABOVE \n";
-    if (keyCollisions[0] != -1) {
-      currentOperand[keyCollisions[1]] = currentOperand[keyCollisions[0]] + currentOperand[keyCollisions[1]];
+    auto keyCollisions = keysFourEquals(keys, currentOperand);
+    if (keyCollisions.first != -1) {
+      currentOperand[keyCollisions.second] = currentOperand[keyCollisions.first] + currentOperand[keyCollisions.second];
       if (readPtr >= input.data() + input.size()) {
-          currentOperand[keyCollisions[0]] = std::nan("");
-          std::cout << "TURNED YOU INTO A NAN \n";
+          currentOperand[keyCollisions.first] = std::nan("");
       } else { 
-        currentOperand[keyCollisions[0]] = *readPtr++;
+        currentOperand[keyCollisions.first] = *readPtr++;
       }
       continue;
     }
@@ -194,7 +190,6 @@ std::vector<double> condenseFour(std::span<double> input) {
       if (existing[i] == 0) {
         out[keys[i]] = currentOperand[i];
         if (readPtr >= input.data() + input.size()) {
-          std::cout << "TURNED YOU INTO A NAN \n";
           currentOperand[i] = std::nan("");
         } else { 
           currentOperand[i] = *readPtr++;
@@ -205,9 +200,7 @@ std::vector<double> condenseFour(std::span<double> input) {
       }
 
     }
-    if (std::isnan(currentOperand[0])) std::cout << "WE MADE IT \n";
   }
-  std::cout << currentOperand[0] << "\n" << currentOperand[1] << "\n" << currentOperand[2] << "\n" << currentOperand[3] << "\n";
   return out;
 }
 
