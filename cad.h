@@ -133,6 +133,18 @@ inline __m256i generateFourKeys(__m256d values) {
 /* returns index of equal key, -1 if all clear */
 inline std::pair<int, int> keysFourEquals(__m256i keys, __m256d values) {
   for (int i = 0 ; i < 3 ; i++) {
+    for (int j = i + 1 ; j < 4 ; j++) {
+      if (keys[i] == keys[j]) {
+        return {i, j};
+      }
+    }
+  }
+  return {-1, -1};
+}
+
+/* returns index of equal key, -1 if all clear, checks for NaN */
+inline std::pair<int, int> keysFourEqualsDrain(__m256i keys, __m256d values) {
+  for (int i = 0 ; i < 3 ; i++) {
     if (std::isnan(values[i])) continue;
     for (int j = i + 1 ; j < 4 ; j++) {
       if (keys[i] == keys[j]) {
@@ -160,10 +172,34 @@ std::vector<double> condenseFour(std::span<double> input) {
 
   int index;
 
-  while (!allNan256(currentOperand)) {
+  while (readPtr <= (input.data() + input.size()) - 4) {
     __m256i keys = generateFourKeys(currentOperand);
 
     auto keyCollisions = keysFourEquals(keys, currentOperand);
+    if (keyCollisions.first != -1) {
+      currentOperand[keyCollisions.second] = currentOperand[keyCollisions.first] + currentOperand[keyCollisions.second];
+      currentOperand[keyCollisions.first] = *readPtr++;
+      continue;
+    }
+
+    __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
+    currentOperand = _mm256_add_pd(currentOperand, existing);
+
+    for (int i = 0 ; i < 4 ; i++) {
+      if (existing[i] == 0) {
+        out[keys[i]] = currentOperand[i];
+        currentOperand[i] = *readPtr++;
+      }
+      else {
+        out[keys[i]] = 0;
+      }
+
+    }
+  }
+  while (!allNan256(currentOperand)) {
+    __m256i keys = generateFourKeys(currentOperand);
+
+    auto keyCollisions = keysFourEqualsDrain(keys, currentOperand);
     if (keyCollisions.first != -1) {
       currentOperand[keyCollisions.second] = currentOperand[keyCollisions.first] + currentOperand[keyCollisions.second];
       if (readPtr >= input.data() + input.size()) {
@@ -190,7 +226,6 @@ std::vector<double> condenseFour(std::span<double> input) {
       else {
         out[keys[i]] = 0;
       }
-
     }
   }
   return out;
