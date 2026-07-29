@@ -143,17 +143,10 @@ inline std::pair<int, int> keysFourEquals(__m256i keys, __m256d values) {
   return {-1, -1};
 }
 
-inline bool nan256(__m256d values) {
-  if (std::isnan(values[0])) return true;
-  if (std::isnan(values[1])) return true;
-  if (std::isnan(values[2])) return true;
-  if (std::isnan(values[3])) return true;
-  return false;
-}
-
 inline bool allNan256(__m256d values) {
-  if (std::isnan(values[0]) and std::isnan(values[1]) and std::isnan(values[2]) and std::isnan(values[3])) return true;
-  return false;
+  __m256d nanMask = _mm256_cmp_pd(values, values, 3);
+  int nanCheck = _mm256_movemask_pd(nanMask);
+  return (nanCheck == 0xF);
 }
 
 std::vector<double> condenseFour(std::span<double> input) {
@@ -186,7 +179,6 @@ std::vector<double> condenseFour(std::span<double> input) {
 
     for (int i = 0 ; i < 4 ; i++) {
       if (std::isnan(currentOperand[i])) continue;
-
       if (existing[i] == 0) {
         out[keys[i]] = currentOperand[i];
         if (readPtr >= input.data() + input.size()) {
