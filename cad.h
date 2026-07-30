@@ -131,14 +131,43 @@ inline __m256i generateFourKeys(__m256d values) {
 }
 
 /* returns index of equal key, -1 if all clear */
-inline std::pair<int, int> keysFourEquals(__m256i keys, __m256d values) {
-  for (int i = 0 ; i < 3 ; i++) {
-    for (int j = i + 1 ; j < 4 ; j++) {
-      if (keys[i] == keys[j]) {
-        return {i, j};
-      }
-    }
+inline std::pair<int, int> keysFourEquals(__m256i keys) {
+  __m256i shiftedKeys;
+  __m256i equal;
+  int mask;
+  /* Initial location of keys: 
+   * | A | B || C | D |
+   *
+   * First compare in the same lane
+   * | B | A || D | C | */
+  shiftedKeys = _mm256_shuffle_epi32(keys, 0b01001110);
+  equal       = _mm256_cmpeq_epi64(keys, shiftedKeys);
+  mask = _mm256_movemask_epi8(equal);
+  if (mask != 0) {
+    if ((mask & 0xFF) != 0) return {0, 1};
+    else return { 2, 3 };
   }
+
+  /* Next shift across the lanes (a bit slower)
+   * | D | C || B | A | */
+  shiftedKeys = _mm256_permute4x64_epi64(shiftedKeys, 0b01001110);
+  equal       = _mm256_cmpeq_epi64(keys, shiftedKeys);
+  mask = _mm256_movemask_epi8(equal);
+  if (mask != 0) {
+    if ((mask & 0xFF) != 0) return {0, 3};
+    else return { 1, 2 };
+  }
+
+  /* Finally swap the two on the same lane and compare
+   * | C | D || A | B | */
+  shiftedKeys = _mm256_shuffle_epi32(shiftedKeys, 0b01001110);
+  equal       = _mm256_cmpeq_epi64(keys, shiftedKeys);
+  mask = _mm256_movemask_epi8(equal);
+  if (mask != 0) {
+    if ((mask & 0xFF) != 0) return {0, 2};
+    else return { 1, 3 };
+  }
+
   return {-1, -1};
 }
 
@@ -175,7 +204,7 @@ std::vector<double> condenseFour(std::span<double> input) {
   while (readPtr <= (input.data() + input.size()) - 4) {
     __m256i keys = generateFourKeys(currentOperand);
 
-    auto keyCollisions = keysFourEquals(keys, currentOperand);
+    auto keyCollisions = keysFourEquals(keys);
     if (keyCollisions.first != -1) {
       currentOperand[keyCollisions.second] = currentOperand[keyCollisions.first] + currentOperand[keyCollisions.second];
       currentOperand[keyCollisions.first] = *readPtr++;
