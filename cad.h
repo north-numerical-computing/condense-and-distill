@@ -184,6 +184,7 @@ inline std::pair<int, int> keysFourEqualsDrain(__m256i keys, __m256d values) {
   return {-1, -1};
 }
 
+/* Four nans Jeremy. That's insane */
 inline bool allNan256(__m256d values) {
   __m256d nanMask = _mm256_cmp_pd(values, values, 3);
   int nanCheck = _mm256_movemask_pd(nanMask);
@@ -192,71 +193,52 @@ inline bool allNan256(__m256d values) {
 
 std::vector<double> condenseFour(std::span<double> input) {
   std::vector<double> out(8191, 0);
+  double* readPtr;
+
+  double buffer[4];
+
+  __m256d currentOperand;
+  __m256d existing;
+  __m256i keys;
 
   if (input.size() < 4) return condenseOne(input);
 
-  double* readPtr = input.data();
-  __m256d currentOperand = _mm256_loadu_pd(readPtr);
+  readPtr = input.data();
+
+  currentOperand = _mm256_loadu_pd(readPtr);
   readPtr += 4;
 
-  int index;
-
   while (readPtr <= (input.data() + input.size()) - 4) {
-    __m256i keys = generateFourKeys(currentOperand);
+    if (allNan256(currentOperand)) {
+      currentOperand = _mm256_loadu_pd(readPtr);
+      readPtr += 4;
+    }
 
-    auto keyCollisions = keysFourEquals(keys);
-    if (keyCollisions.first != -1) {
-      currentOperand[keyCollisions.second] = currentOperand[keyCollisions.first] + currentOperand[keyCollisions.second];
-      currentOperand[keyCollisions.first] = *readPtr++;
+    keys = generateFourKeys(currentOperand);
+    auto keyCollision = keysFourEqualsDrain(keys, currentOperand);
+    if (keyCollision.first != -1) {
+      currentOperand[keyCollision.second] = currentOperand[keyCollision.first] + currentOperand[keyCollision.second];
+      currentOperand[keyCollision.first] = std::nan("");
       continue;
     }
 
-    __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
+    existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
     currentOperand = _mm256_add_pd(currentOperand, existing);
 
-    for (int i = 0 ; i < 4 ; i++) {
-      if (existing[i] == 0) {
-        out[keys[i]] = currentOperand[i];
-        currentOperand[i] = *readPtr++;
-      }
-      else {
-        out[keys[i]] = 0;
-      }
-
-    }
-  }
-  while (!allNan256(currentOperand)) {
-    __m256i keys = generateFourKeys(currentOperand);
-
-    auto keyCollisions = keysFourEqualsDrain(keys, currentOperand);
-    if (keyCollisions.first != -1) {
-      currentOperand[keyCollisions.second] = currentOperand[keyCollisions.first] + currentOperand[keyCollisions.second];
-      if (readPtr >= input.data() + input.size()) {
-          currentOperand[keyCollisions.first] = std::nan("");
-      } else { 
-        currentOperand[keyCollisions.first] = *readPtr++;
-      }
-      continue;
-    }
-
-    __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
-    currentOperand = _mm256_add_pd(currentOperand, existing);
+    _mm256_store_pd(buffer, currentOperand);
 
     for (int i = 0 ; i < 4 ; i++) {
-      if (std::isnan(currentOperand[i])) continue;
+      if (std::isnan(buffer[i])) continue;
       if (existing[i] == 0) {
         out[keys[i]] = currentOperand[i];
-        if (readPtr >= input.data() + input.size()) {
-          currentOperand[i] = std::nan("");
-        } else { 
-          currentOperand[i] = *readPtr++;
-        }
+        currentOperand[i] = std::nan("");
       }
       else {
         out[keys[i]] = 0;
       }
     }
   }
+
   return out;
 }
 
