@@ -14,7 +14,7 @@
 typedef std::function<double(const std::span<double>&)> summation_t;
 typedef std::function<std::vector<double>(unsigned int)> data_generator_t;
 
-const int iterations = 100;
+int iterations = 100;
 
 struct statistics_t {
   double mean;
@@ -72,12 +72,90 @@ struct test_t {
   Bench benchmark;
 };
 
-int main(int argc, char** argv) {
-  std::ofstream outFile("data.json");
+struct args_t {
+  std::string outPath = "data.json";
+  int iterations = 100;
+  bool help = false;
+  std::vector<std::string> disableList;
 
-  const std::vector<test_t> tests = {
-    {"Condense and distill", "Basic implementation of condense and distill based on original paper.", Bench{cadSum, randomDataFixed}},
-    {"Quad double", "Implementation of quad-double algorithm (slow but accurate)", Bench{qdoubleSum, randomDataFixed}}  };
+  enum arg_state_t {
+    asNew,
+    asOutPath,
+    asIterations,
+    asDisable
+  };
+
+  arg_state_t state = asNew;
+  arg_state_t nextState = state;
+
+  args_t(int argc, char** argv) {
+
+    for (int i = 1 ; i < argc ; i++) {
+      std::string current(argv[i]);
+      switch (state) {
+        case (asNew): {
+          if      (current == "-o") nextState = asOutPath;
+          else if (current == "-i") nextState = asIterations;
+          else if (current == "-d") nextState = asDisable;
+          else {
+            std::cout << "Unknown arg " << current << "\n";
+            help = true;
+            return;
+          }
+        }; break;
+        case (asOutPath): {
+          outPath = current;
+          nextState = asNew;
+        }; break;
+        case (asIterations): {
+          if (current.find_first_not_of("0123456789") != std::string::npos) {
+            std::cout << "Invalid number of iterations (" << current << ")\n";
+            help = true;
+            return;
+          }
+          iterations = std::stoi(current);
+          nextState = asNew;
+        }; break;
+        case (asDisable): {
+          disableList.push_back(current);
+          nextState = asNew;
+        }; break;
+      }
+
+      state = nextState;
+    }
+
+    if (state != asNew) {
+      std::cout << "Invalid args!\n";
+      help = true;
+    }
+  }
+};
+
+int main(int argc, char** argv) {
+  args_t args(argc, argv);
+
+  if (args.help) {
+    std::cout << "Usage: " << argv[0] << " [flags]\n";
+    std::cout << "  -i (number of iterations)\n";
+    std::cout << "  -o (output file path)\n";
+    std::cout << "  -d (name of a test you want to disable)\n";
+    return 0;
+  }
+
+  std::ofstream outFile(args.outPath);
+  iterations = args.iterations;
+
+  std::vector<test_t> tests = {
+    {"Condense and distill", "", Bench{cadSum, randomDataFixed}},
+    {"Quad double", "", Bench{qdoubleSum, randomDataFixed}}  };
+
+  auto remover = std::remove_if(tests.begin(), tests.end(), 
+                                [&] ( test_t& t ) {
+                                  return std::find(args.disableList.begin(), args.disableList.end(), t.name) != args.disableList.end();
+                                });
+  
+  tests.erase(remover, tests.end());
 
   const int lower = 1000;
   const int upper = 100000;
