@@ -122,16 +122,31 @@ std::vector<double> condenseTwo(std::span<double> input) {
 /* Condense four at a time impl */
 
 inline __m256i generateFourKeys(__m256d values) {
-  __m256i a = _mm256_castpd_si256(values);       /* get raw bits of the two doubles */
-  __m256i b = _mm256_srli_epi64(a, 52);          /* shift them both down by 52 */
-  b = _mm256_slli_epi64(b, 1);                   /* shift them both up by 1 */
-  __m256i mask = _mm256_set1_epi64x(0x1);        /* create a mask for the bottom bit of both values */
-  a = _mm256_and_si256(a, mask);                 /* and them to get the LSB of the two doubles */
+  __m256i a = _mm256_castpd_si256(values);       /* get raw bits of the four doubles */
+  __m256i b = _mm256_srli_epi64(a, 52);          /* shift them all down by 52 */
+  b = _mm256_slli_epi64(b, 1);                   /* shift them all up by 1 */
+  __m256i mask = _mm256_set1_epi64x(0x1);        /* create a mask for the bottom bit of all values */
+  a = _mm256_and_si256(a, mask);                 /* and them to get the LSB of the four doubles */
   return _mm256_or_si256(a, b);                  /* return the LSB ored with the shifted values */
 }
 
 /* returns index of equal key, -1 if all clear */
-inline std::pair<int, int> keysFourEquals(__m256i keys) {
+inline bool keysFourEquals(__m256i keys, __m256d& values, double*& readPtr) {
+  for (int i = 0 ; i < 3 ; i++) {
+    for (int j = i + 1 ; j < 4 ; j++) {
+      if (keys[i] == keys[j]) {
+        values[i] += values[j];
+        values[j] = *readPtr++;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
+/* returns index of equal key, -1 if all clear */
+inline bool keysFourEquals2(__m256i keys, __m256d& values, double*& readPtr) {
   __m256i shiftedKeys;
   __m256i equal;
   int mask;
@@ -144,8 +159,16 @@ inline std::pair<int, int> keysFourEquals(__m256i keys) {
   equal       = _mm256_cmpeq_epi64(keys, shiftedKeys);
   mask = _mm256_movemask_epi8(equal);
   if (mask != 0) {
-    if ((mask & 0xFF) != 0) return {0, 1};
-    else return { 2, 3 };
+    if ((mask & 0xFF) != 0) {
+      values[0] += values[1];
+      values[1] = *readPtr++;
+      return true;
+    }
+    else {
+      values[2] += values[3];
+      values[3] = *readPtr++;
+      return true;
+    }
   }
 
   /* Next shift across the lanes (a bit slower)
@@ -154,8 +177,16 @@ inline std::pair<int, int> keysFourEquals(__m256i keys) {
   equal       = _mm256_cmpeq_epi64(keys, shiftedKeys);
   mask = _mm256_movemask_epi8(equal);
   if (mask != 0) {
-    if ((mask & 0xFF) != 0) return {0, 3};
-    else return { 1, 2 };
+    if ((mask & 0xFF) != 0) {
+      values[0] += values[3];
+      values[3] = *readPtr++;
+      return true;
+    }
+    else {
+      values[1] += values[2];
+      values[2] = *readPtr++;
+      return true;
+    }
   }
 
   /* Finally swap the two on the same lane and compare
@@ -164,11 +195,38 @@ inline std::pair<int, int> keysFourEquals(__m256i keys) {
   equal       = _mm256_cmpeq_epi64(keys, shiftedKeys);
   mask = _mm256_movemask_epi8(equal);
   if (mask != 0) {
-    if ((mask & 0xFF) != 0) return {0, 2};
-    else return { 1, 3 };
+    if ((mask & 0xFF) != 0) {
+      values[0] += values[2];
+      values[2] = *readPtr++;
+      return true; 
+    }
+    else {
+      values[1] += values[3];
+      values[3] = *readPtr++;
+      return true;
+    }
   }
 
-  return {-1, -1};
+  return false;
+}
+
+constexpr std::array<std::pair<int, int>, 9> keyPairs = {{
+  {0,3}, {0,1}, {1,2}, {2,3}, {0,2}, {1,3}, {-1,-1}, {-1,-1}, {-1,-1}
+}};
+
+inline std::pair<int, int> keysFourEquals3(__m256i keys) {
+  __m256i shift1 = _mm256_permute4x64_epi64(keys, 0b10010011);
+  __m256i shift2 = _mm256_permute4x64_epi64(shift1, 0b10010011);
+
+  __m256i equal1 = _mm256_cmpeq_epi64(keys, shift1);
+  __m256i equal2 = _mm256_cmpeq_epi64(keys, shift2);
+
+  int mask1 = _mm256_movemask_pd(_mm256_castsi256_pd(equal1));
+  int mask2 = _mm256_movemask_pd(_mm256_castsi256_pd(equal2));
+
+  uint8_t maskFinal = ((mask2 & 0b11) << 4) | (mask1 & 0b1111);
+
+  return keyPairs[std::countr_zero(maskFinal)];
 }
 
 /* returns index of equal key, -1 if all clear, checks for NaN */
@@ -184,7 +242,6 @@ inline std::pair<int, int> keysFourEqualsDrain(__m256i keys, __m256d values) {
   return {-1, -1};
 }
 
-/* Four nans Jeremy. That's insane */
 inline bool allNan256(__m256d values) {
   __m256d nanMask = _mm256_cmp_pd(values, values, 3);
   int nanCheck = _mm256_movemask_pd(nanMask);
@@ -193,52 +250,66 @@ inline bool allNan256(__m256d values) {
 
 std::vector<double> condenseFour(std::span<double> input) {
   std::vector<double> out(8191, 0);
-  double* readPtr;
-
-  double buffer[4];
-
-  __m256d currentOperand;
-  __m256d existing;
-  __m256i keys;
 
   if (input.size() < 4) return condenseOne(input);
 
-  readPtr = input.data();
-
-  currentOperand = _mm256_loadu_pd(readPtr);
+  double* readPtr = input.data();
+  __m256d currentOperand = _mm256_loadu_pd(readPtr);
   readPtr += 4;
 
-  while (readPtr <= (input.data() + input.size()) - 4) {
-    if (allNan256(currentOperand)) {
-      currentOperand = _mm256_loadu_pd(readPtr);
-      readPtr += 4;
-    }
+  int index;
 
-    keys = generateFourKeys(currentOperand);
-    auto keyCollision = keysFourEqualsDrain(keys, currentOperand);
-    if (keyCollision.first != -1) {
-      currentOperand[keyCollision.second] = currentOperand[keyCollision.first] + currentOperand[keyCollision.second];
-      currentOperand[keyCollision.first] = std::nan("");
+  while (readPtr <= (input.data() + input.size()) - 4) {
+    __m256i keys = generateFourKeys(currentOperand);
+
+    if (keysFourEquals(keys, currentOperand, readPtr)) continue;
+
+    __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
+    currentOperand = _mm256_add_pd(currentOperand, existing);
+
+    for (int i = 0 ; i < 4 ; i++) {
+      if (existing[i] == 0) {
+        out[keys[i]] = currentOperand[i];
+        currentOperand[i] = *readPtr++;
+      }
+      else {
+        out[keys[i]] = 0;
+      }
+
+    }
+  }
+  while (!allNan256(currentOperand)) {
+    __m256i keys = generateFourKeys(currentOperand);
+
+    auto keyCollisions = keysFourEqualsDrain(keys, currentOperand);
+    if (keyCollisions.first != -1) {
+      currentOperand[keyCollisions.second] = currentOperand[keyCollisions.first] + currentOperand[keyCollisions.second];
+      if (readPtr >= input.data() + input.size()) {
+          currentOperand[keyCollisions.first] = std::nan("");
+      } else { 
+        currentOperand[keyCollisions.first] = *readPtr++;
+      }
       continue;
     }
 
-    existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
+    __m256d existing = _mm256_set_pd(out[keys[3]], out[keys[2]], out[keys[1]], out[keys[0]]);
     currentOperand = _mm256_add_pd(currentOperand, existing);
 
-    _mm256_store_pd(buffer, currentOperand);
-
     for (int i = 0 ; i < 4 ; i++) {
-      if (std::isnan(buffer[i])) continue;
+      if (std::isnan(currentOperand[i])) continue;
       if (existing[i] == 0) {
         out[keys[i]] = currentOperand[i];
-        currentOperand[i] = std::nan("");
+        if (readPtr >= input.data() + input.size()) {
+          currentOperand[i] = std::nan("");
+        } else { 
+          currentOperand[i] = *readPtr++;
+        }
       }
       else {
         out[keys[i]] = 0;
       }
     }
   }
-
   return out;
 }
 
