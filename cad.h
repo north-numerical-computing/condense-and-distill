@@ -242,6 +242,7 @@ inline std::pair<int, int> keysFourEqualsDrain(__m256i keys, __m256d values) {
   return {-1, -1};
 }
 
+/* Four nans Jeremy. That's insane */
 inline bool allNan256(__m256d values) {
   __m256d nanMask = _mm256_cmp_pd(values, values, 3);
   int nanCheck = _mm256_movemask_pd(nanMask);
@@ -313,6 +314,126 @@ std::vector<double> condenseFour(std::span<double> input) {
   return out;
 }
 
+
+/* Condense eight at a time impl */
+
+__m512i generateEightKeys(__m512d values) {
+  __m512i a = _mm512_castpd_si512(values);
+  __m512i b = _mm512_ror_epi64(a, 1);
+  __m512i c = _mm512_srli_epi64(b, 51);
+  return c;
+}
+
+inline bool keysEightEquals(__m512i keys, __m512d& values, double*& readPtr) {
+  for (int i = 0 ; i < 7 ; i++) {
+    for (int j = i + 1 ; j < 8 ; j++) {
+      if (keys[i] == keys[j]) {
+        values[i] += values[j];
+        values[j] = *readPtr++;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+inline bool keysEightEqualsDrain(__m512i keys, __m512d& values, double*& readPtr, double* inputSize) {
+  for (int i = 0 ; i < 7 ; i++) {
+    if (std::isnan(values[i])) continue;
+    for (int j = i + 1 ; j < 8 ; j++) {
+      if (keys[i] == keys[j]) {
+        values[i] += values[j];
+        if (readPtr >= inputSize) {
+          values[j] = std::nan("");
+        } else {
+          values[j] = *readPtr++;
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+inline bool allNan512(__m512d values) {
+  __mmask8 nanCheck = _mm512_cmp_pd_mask(values, values, 3);
+  return (nanCheck == 0xFF);
+}
+
+std::vector<double> condenseEight(std::span<double> input) {
+  std::vector<double> out(8191, 0);
+
+  if (input.size() < 8) return condenseOne(input);
+
+  double* readPtr = input.data();
+  __m512d currentOperand = _mm512_loadu_pd(readPtr);
+  readPtr += 8;
+
+  int index;
+
+  while (readPtr <= (input.data() + input.size()) - 8) {
+    __m512i keys = generateEightKeys(currentOperand);
+
+    if (keysEightEquals(keys, currentOperand, readPtr)) continue;
+
+    __m512d existing = _mm512_set_pd(
+      out[keys[7]],
+      out[keys[6]],
+      out[keys[5]],
+      out[keys[4]],
+      out[keys[3]],
+      out[keys[2]],
+      out[keys[1]],
+      out[keys[0]]
+    );
+    currentOperand = _mm512_add_pd(currentOperand, existing);
+
+    for (int i = 0 ; i < 8 ; i++) {
+      if (existing[i] == 0) {
+        out[keys[i]] = currentOperand[i];
+        currentOperand[i] = *readPtr++;
+      }
+      else {
+        out[keys[i]] = 0;
+      }
+
+    }
+  }
+  while (!allNan512(currentOperand)) {
+    __m512i keys = generateEightKeys(currentOperand);
+
+    if (keysEightEqualsDrain(keys, currentOperand, readPtr, (input.data() + input.size()))) continue;
+
+    __m512d existing = _mm512_set_pd(
+      out[keys[7]],
+      out[keys[6]],
+      out[keys[5]],
+      out[keys[4]],
+      out[keys[3]],
+      out[keys[2]],
+      out[keys[1]],
+      out[keys[0]]
+    );
+    currentOperand = _mm512_add_pd(currentOperand, existing);
+
+    for (int i = 0 ; i < 8 ; i++) {
+      if (std::isnan(currentOperand[i])) continue;
+      if (existing[i] == 0) {
+        out[keys[i]] = currentOperand[i];
+        if (readPtr >= input.data() + input.size()) {
+          currentOperand[i] = std::nan("");
+        } else {
+          currentOperand[i] = *readPtr++;
+        }
+      }
+      else {
+        out[keys[i]] = 0;
+      }
+    }
+  }
+  return out;
+}
+
 void assertKeys(std::vector<double>& bucket) {
   for (size_t i = 0 ; i < bucket.size() ; i++) {
     if (bucket[i] == 0.0) continue;
@@ -323,7 +444,7 @@ void assertKeys(std::vector<double>& bucket) {
   }
 }
 
-#define condense condenseFour
+#define condense condenseEight
 
 double cadSum(std::span<double> sum) {
   auto out = condense(sum);
