@@ -62,6 +62,13 @@ std::vector<double> condenseOne(std::span<double> input) {
 
 /* Condense two at a time impl */
 
+#if defined(__AVX512F__) && defined(__AVX512VL__)
+inline __m128i generateKeys(__m128d values) {
+  __m128i a = _mm_castpd_si128(values);       /* get raw bits of the four doubles */
+  __m128i b = _mm_ror_epi64(a, 1);            /* rotate LSB to top of key */
+  return _mm_srli_epi64(b, 51);               /* shift remaining 51 bits of mantissa out */
+}
+#else
 inline __m128i generateKeys(__m128d values) {
   __m128i a = _mm_castpd_si128(values);       /* get raw bits of the two doubles */
   __m128i b = _mm_srli_epi64(a, 52);          /* shift them both down by 52 */
@@ -70,6 +77,7 @@ inline __m128i generateKeys(__m128d values) {
   a = _mm_and_si128(a, mask);                 /* and them to get the LSB of the two doubles */
   return _mm_or_si128(a, b);                  /* return the LSB ored with the shifted values */
 }
+#endif
 
 inline bool keysEqual(__m128i keys) {
   return keys[0] == keys[1];
@@ -121,6 +129,13 @@ std::vector<double> condenseTwo(std::span<double> input) {
 
 /* Condense four at a time impl */
 
+#if defined(__AVX512F__) && defined(__AVX512VL__)
+inline __m256i generateFourKeys(__m256d values) {
+  __m256i a = _mm256_castpd_si256(values);       /* get raw bits of the four doubles */
+  __m256i b = _mm256_ror_epi64(a, 1);            /* rotate LSB to top of key */
+  return _mm256_srli_epi64(b, 51);               /* shift remaining 51 bits of mantissa out */
+}
+#else
 inline __m256i generateFourKeys(__m256d values) {
   __m256i a = _mm256_castpd_si256(values);       /* get raw bits of the four doubles */
   __m256i b = _mm256_srli_epi64(a, 52);          /* shift them all down by 52 */
@@ -129,6 +144,7 @@ inline __m256i generateFourKeys(__m256d values) {
   a = _mm256_and_si256(a, mask);                 /* and them to get the LSB of the four doubles */
   return _mm256_or_si256(a, b);                  /* return the LSB ored with the shifted values */
 }
+#endif
 
 /* returns index of equal key, -1 if all clear */
 inline bool keysFourEquals(__m256i keys, __m256d& values, double*& readPtr) {
@@ -314,9 +330,9 @@ std::vector<double> condenseFour(std::span<double> input) {
   return out;
 }
 
-
 /* Condense eight at a time impl */
 
+#if defined(__AVX512F__)
 __m512i generateEightKeys(__m512d values) {
   __m512i a = _mm512_castpd_si512(values);
   __m512i b = _mm512_ror_epi64(a, 1);
@@ -356,8 +372,7 @@ inline bool keysEightEqualsDrain(__m512i keys, __m512d& values, double*& readPtr
 }
 
 inline bool allNan512(__m512d values) {
-  __mmask8 nanCheck = _mm512_cmp_pd_mask(values, values, 3);
-  return (nanCheck == 0xFF);
+  return (_mm512_cmp_pd_mask(values, values, 3) == 0xFF);
 }
 
 std::vector<double> condenseEight(std::span<double> input) {
@@ -433,6 +448,7 @@ std::vector<double> condenseEight(std::span<double> input) {
   }
   return out;
 }
+#endif
 
 void assertKeys(std::vector<double>& bucket) {
   for (size_t i = 0 ; i < bucket.size() ; i++) {
@@ -444,7 +460,7 @@ void assertKeys(std::vector<double>& bucket) {
   }
 }
 
-#define condense condenseEight
+#define condense condenseTwo
 
 double cadSum(std::span<double> sum) {
   auto out = condense(sum);
