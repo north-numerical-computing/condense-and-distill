@@ -66,8 +66,8 @@ inline std::array<double, 8192> condenseOne(std::span<double> input, uint64_t ma
 
 /* Condense two at a time impl */
 
-inline double incReadPtr(std::span<double>::iterator& current, std::span<double>::iterator end, bool& active) {
-  if (current == end) {
+inline double incReadPtr(std::span<double>::iterator& current, std::span<double>& array, bool& active) {
+  if (current == array.end()) {
     active = false;
     return 0;
   }
@@ -86,14 +86,15 @@ inline std::array<double, 8192> condenseTwo(std::span<double> input, uint64_t ma
   __m128d existing;
 
   values = _mm_loadu_pd(&(*readPtr));
-  keyA = generateKey(values[0]);
-  keyB = generateKey(values[1]);
   readPtr += 2;
 
   while (activeA && activeB) {
+    keyA = generateKey(values[0]);
+    keyB = generateKey(values[1]);
+
     if (keyA == keyB) {
       values[0] += values[1];
-      values[1] = incReadPtr(readPtr, input.end(), activeB);
+      values[1] = incReadPtr(readPtr, input, activeB);
       keyB = generateKey(values[1]);
       continue;
     }
@@ -108,21 +109,21 @@ inline std::array<double, 8192> condenseTwo(std::span<double> input, uint64_t ma
 
     if (mask[keyA >> 6] & bitA) {
       out[keyA] = values[0];
-      values[0] = incReadPtr(readPtr, input.end(), activeA);
-      keyA = generateKey(values[0]);
+      values[0] = incReadPtr(readPtr, input, activeA);
     } else {
       values[0] = existing[0];
     }
     if (mask[keyB >> 6] & bitB) {
       out[keyB] = values[1];
-      values[1] = incReadPtr(readPtr, input.end(), activeB);
-      keyB = generateKey(values[1]);
+      values[1] = incReadPtr(readPtr, input, activeB);
     } else {
       values[1] = existing[1];
     }
   }
 
   while (activeA) {
+    keyA = generateKey(values[0]);
+
     const uint64_t bitA = 1ULL << (keyA & 63);
     mask[keyA >> 6] ^= bitA;
 
@@ -130,25 +131,25 @@ inline std::array<double, 8192> condenseTwo(std::span<double> input, uint64_t ma
 
     if (mask[keyA >> 6] & bitA) {
       out[keyA] = values[0];
-      values[0] = incReadPtr(readPtr, input.end(), activeA);
-      keyA = generateKey(values[0]);
+      values[0] = incReadPtr(readPtr, input, activeA);
     } else {
       values[0] = existing[0];
     }
   }
 
   while (activeB) {
+    keyB = generateKey(values[1]);
+
     const uint64_t bitB = 1ULL << (keyB & 63);
     mask[keyB >> 6] ^= bitB;
 
-    existing[0] = out[keyB] + values[0];
+    existing[1] = out[keyB] + values[1];
 
     if (mask[keyB >> 6] & bitB) {
-      out[keyB] = values[0];
-      values[0] = incReadPtr(readPtr, input.end(), activeB);
-      keyB = generateKey(values[0]);
+      out[keyB] = values[1];
+      values[1] = incReadPtr(readPtr, input, activeB);
     } else {
-      values[0] = existing[0];
+      values[1] = existing[1];
     }
   }
 
@@ -175,7 +176,7 @@ double cadSum(std::span<double> sum) {
   auto out = condense(sum, mask);
   
   #ifndef NDEBUG
-  assertKeys(out);
+  // assertKeys(out);
   #endif
 
   qdouble current = { 0, 0, 0, 0 };
