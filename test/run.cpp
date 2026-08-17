@@ -1,6 +1,10 @@
 #include <cmath>
 #include <vector>
 
+#include <iostream>
+#include <fstream>
+
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_session.hpp>
@@ -46,7 +50,6 @@ TEST_CASE("random ill-conditioned sum") {
   auto data = randomIllConditionedSum(repeat, k, e, cond);
 
   double sum = cadSum(data);
-  std::cout << "ILL CONDITIONED TEST: " << expected << ", " << sum << "\n";
   REQUIRE(sum == expected); 
 }
 
@@ -61,7 +64,6 @@ TEST_CASE("powers of two") {
 
   double sum = cadSum(data);
   double result = std::abs(expected - sum) / std::abs(expected);
-  std::cout << "POWERS OF TWO TEST: " << sum << ", " << expected << ", " << result << "\n";
   REQUIRE(result == 0);
 }
 

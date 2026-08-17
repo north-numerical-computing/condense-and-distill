@@ -50,13 +50,7 @@ title = title[:-1]
 
 ax.set_title(title)
 
-plotTest("Quad double", "first")
 plotAllTest("Condense and distill")
-plotAllTest("Acc Sum")
-plotAllTest("Hida")
-plotAllTest("Exact")
-plotAllTest("Facc Sum")
-plotAllTest("Prec Sum")
 
 plt.legend()
 plt.show()
