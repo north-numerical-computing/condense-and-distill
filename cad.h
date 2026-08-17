@@ -1,28 +1,14 @@
 #pragma once 
 
-#include <cmath>
 #include <cstdint>
-#include <cstring>
-#include <vector>
 #include <span>
-#include <memory>
-#include <utility>
-#include <algorithm>
 #include <array>
-
-#include <iostream>
-#include <iomanip>
-#include <cassert>
 
 #ifdef __SSE2__
 #include <immintrin.h>
 #else 
-#warning SSE2 not supported!
+#warning SSE2 not supported! 
 #endif 
-
-#ifndef __AVX__
-#warning AVX not supported!
-#endif
 
 #include "qdouble.h"
 
@@ -156,28 +142,18 @@ inline std::array<double, 8192> condenseTwo(std::span<double> input, uint64_t ma
   return out;
 }
 
+#define condense condenseTwo
+
 #endif
 
-void assertKeys(std::span<double> bucket) {
-  for (size_t i = 0 ; i < bucket.size() ; i++) {
-    if (bucket[i] == 0.0) continue;
-
-    if (generateKey(bucket[i]) != i) {
-      assert(0);
-    }
-  }
-}
-
-#define condense condenseTwo
+#ifndef condense
+#define condense condenseOne 
+#endif 
 
 double cadSum(std::span<double> sum) {
   uint64_t mask[128] = { 0 };
 
   auto out = condense(sum, mask);
-  
-  #ifndef NDEBUG
-  // assertKeys(out);
-  #endif
 
   qdouble current = { 0, 0, 0, 0 };
 
